@@ -1,0 +1,192 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{589A28A8-0EDD-455F-80AE-D6D3F7172995}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>BaseballDraft</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>vc_mswud\</OutDir>
+    <IntDir>vc_mswud\baseballdraft\</IntDir>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)include</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSdkDir)lib;$(FrameworkSDKDir)\lib</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>vc_mswu\</OutDir>
+    <IntDir>vc_mswu\baseballdraft\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>__LEAK_DETECTOR__;WIN32;_DEBUG;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;c:\wxWidgets-2.9.4\lib\vc_lib\mswud;c:\wxWidgets-2.9.4\include;"c:\Program Files (x86)\Visual Leak Detector\include";%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <ObjectFileName>vc_mswud\baseballdraft\</ObjectFileName>
+      <ProgramDataBaseFileName>vc_mswud\baseballdraft.pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OutputFile>vc_mswud\baseballdraft.exe</OutputFile>
+      <AdditionalLibraryDirectories>c:\wxWidgets-2.9.4\lib\vc_lib;"c:\Program Files (x86)\Visual Leak Detector\lib\Win32";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxbase29ud_xml.lib;wxmsw29ud_propgrid.lib;wxmsw29ud_adv.lib;wxmsw29ud_core.lib;wxbase29ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;kernel32.lib;user32.lib;gdi32.lib;comdlg32.lib;winspool.lib;winmm.lib;shell32.lib;comctl32.lib;ole32.lib;oleaut32.lib;uuid.lib;rpcrt4.lib;advapi32.lib;ws2_32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ProgramDatabaseFile>vc_mswud\baseballdraft.pdb</ProgramDatabaseFile>
+      <ProfileGuidedDatabase>vc_mswud\baseballdraft.pgd</ProfileGuidedDatabase>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>.;c:\wxWidgets-2.9.5\lib\vc_lib\mswu;c:\wxWidgets-2.9.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wxbase29u_xml.lib;wxmsw29u_propgrid.lib;wxmsw29u_adv.lib;wxmsw29u_core.lib;wxbase29u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;kernel32.lib;user32.lib;gdi32.lib;comdlg32.lib;winspool.lib;winmm.lib;shell32.lib;comctl32.lib;ole32.lib;oleaut32.lib;uuid.lib;rpcrt4.lib;advapi32.lib;ws2_32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\wxWidgets-2.9.5\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <OutputFile>vc_mswu\BaseballDraft.exe</OutputFile>
+      <ProgramDatabaseFile>
+      </ProgramDatabaseFile>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="BaseballDraft.ico" />
+    <None Include="icon1.ico" />
+    <None Include="ReadMe.txt" />
+    <None Include="small.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="addnewplayer.h" />
+    <ClInclude Include="BaseballDraft.h" />
+    <ClInclude Include="createleague.h" />
+    <ClInclude Include="dataimporter.h" />
+    <ClInclude Include="db.h" />
+    <ClInclude Include="draftresult.h" />
+    <ClInclude Include="draftresultpanel.h" />
+    <ClInclude Include="draftresultsalary.h" />
+    <ClInclude Include="editcolumn.h" />
+    <ClInclude Include="edittargets.h" />
+    <ClInclude Include="enterstats.h" />
+    <ClInclude Include="frame.h" />
+    <ClInclude Include="gridtotalcell.h" />
+    <ClInclude Include="leaguesettings.h" />
+    <ClInclude Include="mainfrane.h" />
+    <ClInclude Include="mytipdialog.h" />
+    <ClInclude Include="namecompleter.h" />
+    <ClInclude Include="newleaguename.h" />
+    <ClInclude Include="newleagueowners.h" />
+    <ClInclude Include="newleagueplayers.h" />
+    <ClInclude Include="newleaguepositions.h" />
+    <ClInclude Include="newleaguescoring.h" />
+    <ClInclude Include="newplayerpositions.h" />
+    <ClInclude Include="playerdraft.h" />
+    <ClInclude Include="playerdropped.h" />
+    <ClInclude Include="playerspanel.h" />
+    <ClInclude Include="playerspanelgrid.h" />
+    <ClInclude Include="playerspanelgridtable.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="SQLite\sqlite3.h" />
+    <ClInclude Include="SQLite\sqlite3ext.h" />
+    <ClInclude Include="startdialog.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="teamprojections.h" />
+    <ClInclude Include="teamsroster.h" />
+    <ClInclude Include="textctrl.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="addnewplayer.cpp" />
+    <ClCompile Include="BaseballDraft.cpp" />
+    <ClCompile Include="createleague.cpp" />
+    <ClCompile Include="dataimporter.cpp" />
+    <ClCompile Include="db.cpp" />
+    <ClCompile Include="draftresult.cpp" />
+    <ClCompile Include="draftresultpanel.cpp" />
+    <ClCompile Include="draftresultsalary.cpp" />
+    <ClCompile Include="editcolumn.cpp" />
+    <ClCompile Include="edittargets.cpp" />
+    <ClCompile Include="enterstats.cpp" />
+    <ClCompile Include="frame.cpp" />
+    <ClCompile Include="gridtotalcell.cpp" />
+    <ClCompile Include="leaguesettings.cpp" />
+    <ClCompile Include="mainfrane.cpp" />
+    <ClCompile Include="mytipdialog.cpp" />
+    <ClCompile Include="namecompleter.cpp" />
+    <ClCompile Include="newleaguename.cpp" />
+    <ClCompile Include="newleagueowners.cpp" />
+    <ClCompile Include="newleagueplayers.cpp" />
+    <ClCompile Include="newleaguepositions.cpp" />
+    <ClCompile Include="newleaguescoring.cpp" />
+    <ClCompile Include="newplayerpositions.cpp" />
+    <ClCompile Include="playerdraft.cpp" />
+    <ClCompile Include="playerdropped.cpp" />
+    <ClCompile Include="playerspanel.cpp" />
+    <ClCompile Include="playerspanelgrid.cpp" />
+    <ClCompile Include="playerspanelgridtable.cpp" />
+    <ClCompile Include="SQLite\sqlite3.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level3</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="startdialog.cpp" />
+    <ClCompile Include="teamprojections.cpp" />
+    <ClCompile Include="teamsroster.cpp" />
+    <ClCompile Include="textctrl.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BaseballDraft.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

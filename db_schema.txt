@@ -1,0 +1,154 @@
+draft.db
+
+Leagues
+id integer primary key
+name varchar(100)
+drafttype integer(1)
+scoringtype integer(1)
+roundvalues integer(1)
+type char(5)
+salary integer
+benchplayers integer(1)
+
+drafttype - 1 - auction, 2 - straight draft, 3 - snake draft
+scoringtype - 1 - Roto, 2 - Points
+roundvalues - 1 -0.10, 2 - 0.25, 3 - 0.50, 4 - 1.00
+ 
+Owners
+ownerid integer primary key
+id integer
+ownername varchar(100)
+foreign key(id) references leagues(id)
+
+positions
+positionid integer primary key
+positionname char(10)
+
+positionsforleague
+positionid integer
+id integer
+value integer
+foreign key(positionid) references positions(positionid)
+foreign key(id) references leagues(id)
+
+teams
+teamid integer primary key
+name varchar(50)
+teamnational char
+shortname char(5)
+
+teamsforleague
+id integer
+teamid integer
+foreign key(id) references leagues(id)
+foreign key(teamid) references teams(teamid)
+
+scorehits
+scoreid integer primary key
+scorename varchar(15)
+
+scorepitch
+scoreid integer primary key
+scorename varchar(15)
+
+scorehitsforleague
+id integer
+scoreid integer
+foreign key(id) references league(id)
+foreign key(scoreid) references scorehits(scoreid)
+
+scorepitchforleague
+id integer
+scoreid integer
+foreign key(id) references league(id)
+foreign key(scoreid) references scorehits(scoreid)
+
+players
+playerid integer primary key
+name varchar(70)
+ishitter char
+age integer
+value integer
+teamid integer
+currvalue double
+notes varchar(125)
+isdrafted char
+isnew char(1)
+foreign key(teamid) references teams(teamid)
+
+playerposition
+playerid integer
+positionid integer
+foreign key(playerid) references players(playerid)
+foreign key(positionid) references positions(positionid)
+
+playerpositioninleague
+playerid integer
+positionid integer
+id integer
+foreign key(playerid) references players(playerid)
+foreign key(positionid) references positions(positionid)
+foreign key(id) references leagues(id)
+
+playerscorehits
+playerid integer
+scoreid integer
+value real
+foreign key(playerid) references players(playerid)
+foreign key(scoreid) references scorehits(scoreid)
+
+playerscorepitches
+playerid integer
+scoreid integer
+value real
+foreign key(playerid) references players(playerid)
+foreign key(scoreid) references scorepitch(scoreid)
+
+targetshits
+id integer
+scoreid integer
+value double
+foreign key(id) references leagues(id)
+foreign key(scoreid) references scorehits(scoreid)
+
+targetspitches
+id integer
+scoreid integer
+value double
+foreign key(id) references leagues(id)
+foreign key(scoreid) references scorepitch(scoreid)
+
+leagueplayershitter
+id integer
+playerid integer
+value integer
+currvalue double
+scoreid integer
+score double
+draft boolean
+isnew char(1)
+foreign key(id) reference leagues(id)
+foreign key(playerid) reference players(playerid)
+
+leagueplayerspitcher
+id integer
+playerid integer
+value integer
+currvalue double
+scoreid integer
+score double
+draft boolean
+isnew char(1)
+foreign key(id) reference leagues(id)
+foreign key(playerid) reference players(playerid)
+
+playerdraft
+playerid integer
+id integer
+ownerid integer
+draftprice integer
+draftorder integer
+draftposition char(2)
+foreign key(playerid) references players(playerid)
+foreign key(id) references leagues(id)
+foreign key(ownerid) references owners(ownerid)
