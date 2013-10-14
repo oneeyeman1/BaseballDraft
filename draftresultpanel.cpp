@@ -86,7 +86,7 @@ void CDraftResultPanel::AddDraftedPlayer(const CPlayer &player, bool isDrafted)
 	m_results->SetCellValue( row - 1, 2, const_cast<CPlayer &>( player ).GetOwner() );
 	m_results->SetCellValue( row - 1, 3, wxString::Format( "$%d", const_cast<CPlayer &>( player ).GetAmountPaid() ) );
 	if( player.GetValue() - player.GetAmountPaid() != 0 )
-		m_results->SetCellValue( row - 1, 4, wxString::Format( "$%d", player.GetValue() - player.GetAmountPaid() ) );
+		m_results->SetCellValue( row - 1, 4, wxString::Format( "$%d", (int)player.GetValue() - player.GetAmountPaid() ) );
 	m_results->AutoSize();
 }
 

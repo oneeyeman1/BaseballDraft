@@ -142,7 +142,7 @@ public:
 	{
 	}
 
-	CPlayer(const long &id, const wxString &name, const std::vector<wxString> &position, int age, int value, const wxString &team, const wxString &teamAbbreviated, const std::map<wxString,double> &scoring, bool hitter, double currValue, const wxString &notes, int baseValue)
+	CPlayer(const long &id, const wxString &name, const std::vector<wxString> &position, int age, double value, const wxString &team, const wxString &teamAbbreviated, const std::map<wxString,double> &scoring, bool hitter, double currValue, const wxString &notes, double baseValue)
 	{
 		m_range = 0;
 		m_draftOrder = 0;
@@ -175,8 +175,8 @@ public:
 	inline wxString &GetAbbeviatedTeamName() { return m_teamAbbreviated; };
 	inline std::vector<wxString> &GetPositions() { return m_positions; };
 	inline std::map<wxString,double> &GetScoring() { return m_score; };
-	inline int GetValue() const { return m_value; };
-	inline void SetValue(int value) { m_value = value; };
+	inline double GetValue() const { return m_value; };
+	inline void SetValue(double value) { m_value = value; };
 	inline void SetAge(int age) { m_age = age; };
 	inline void SetPosition(wxString position) { m_positions.push_back( position ); };
 	inline void ClearPositions() { m_positions.clear(); };
@@ -199,15 +199,15 @@ public:
 	inline void SetDraftOrder(int order) { m_draftOrder = order; };
 	inline void SetRange(int range) { m_range = range; };
 	inline int GetRange() { return m_range; };
-	inline void SetBaseValue(int value) { m_baseValue = value; };
-	inline int GetBaseValue() { return m_baseValue; };
+	inline void SetBaseValue(double value) { m_baseValue = value; };
+	inline double GetBaseValue() { return m_baseValue; };
 	inline void SetOriginalScore(const std::map<wxString,double> &originalScore)  { m_originalScore = originalScore; };
 	inline std::map<wxString,double> &GetOriginalScore() { return m_originalScore; };
 private:
 	wxString m_name, m_team, m_teamAbbreviated, m_notes, m_draftedPosition, m_owner;
-	int m_age, m_baseValue, m_value, m_amountPaid, m_draftOrder, m_range;
+	int m_age, m_amountPaid, m_draftOrder, m_range;
 	long m_id;
-	double m_currValue;
+	double m_currValue, m_baseValue, m_value;
 	bool m_isHitter, m_isDrafted, m_isNew;
 	std::map<wxString, double> m_score, m_originalScore;
 	std::vector<wxString> m_positions;

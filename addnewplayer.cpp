@@ -49,7 +49,7 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
 	if( player && !player->IsPlayerDrafted() )
 	{
 		m_label6 = new wxStaticText( m_panel, wxID_ANY, "BegValue:" );
-		m_value = new wxTextCtrl( m_panel, wxID_ANY, wxString::Format( "%d", player->GetValue() ), wxDefaultPosition, wxDefaultSize, 0, wxIntegerValidator<unsigned int>() );
+		m_value = new wxTextCtrl( m_panel, wxID_ANY, wxString::Format( "%.2f", player->GetValue() ), wxDefaultPosition, wxDefaultSize, 0, wxFloatingPointValidator<double>() );
 	}
 	else if( !player )
 	{

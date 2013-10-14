@@ -206,7 +206,7 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString>> &hitters, std::v
 								value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							cell = cell->GetNext();
 						}
-						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"1\", %d, %d, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
+						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"1\", %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
 						for( size_t i = 0; i < position.size(); i++ )
 							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( NULL, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
 						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"AVG\"), %.3f );", avg_score ) );
@@ -354,7 +354,7 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString>> &hitters, std::v
 								value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							cell = cell->GetNext();
 						}
-						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"0\", %d, %d, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
+						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"0\", %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
 						for( size_t i = 0; i < position.size(); i++ )
 							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( NULL, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
 						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"Wins\"), %.3f );", w_score ) );

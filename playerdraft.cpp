@@ -202,7 +202,7 @@ void CPlayerDraft::OnPlayerNameChange(wxCommandEvent &WXUNUSED(event))
 				m_playerInfo->SetReadOnly( 0, 2 );
 				m_playerInfo->SetCellValue( 0, 3, wxString::Format( "%d", it->GetAge() ) );
 				m_playerInfo->SetReadOnly( 0, 3 );
-				m_playerInfo->SetCellValue( 0, 4, wxString::Format( "$%d", it->GetValue() ) );
+				m_playerInfo->SetCellValue( 0, 4, wxString::Format( "$%d", (int) it->GetValue() ) );
 				m_playerInfo->SetReadOnly( 0, 4 );
 				m_playerInfo->SetCellValue( 0, 5, wxString::Format( "$%.2f", it->GetCurrentValue() ) );
 				m_playerInfo->SetReadOnly( 0, 5 );

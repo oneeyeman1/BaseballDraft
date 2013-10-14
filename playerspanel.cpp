@@ -319,7 +319,7 @@ void CPlayersPanel::set_properties()
 			int col = FindColumnByLabel( (*it_hitters).first );
 			m_players->SetCellValue( row, col, score );
 		}
-		m_players->SetCellValue( row, 31, wxString::Format( "$%d", (*it).GetValue() ) );
+		m_players->SetCellValue( row, 31, wxString::Format( "$%.2f", (*it).GetValue() ) );
 		m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", (*it).GetCurrentValue() ) );
 		if( (*it).IsPlayerDrafted() )
 		{
@@ -612,7 +612,7 @@ void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 		int col = FindColumnByLabel( (*it_hitters).first );
 		m_players->SetCellValue( row, col, score );
 	}
-	m_players->SetCellValue( row, 31, wxString::Format( "$%d", player.GetValue() ) );
+	m_players->SetCellValue( row, 31, wxString::Format( "$%.2f", player.GetValue() ) );
 	m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", player.GetCurrentValue() ) );
 	if( player.IsPlayerDrafted() )
 	{
@@ -1579,7 +1579,7 @@ void CPlayersPanel::PerformDraft(const CPlayer &player, double inflation, const 
 			{
 				m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", player.GetCurrentValue() ) );
 				m_players->SetCellValue( row, 33, wxString::Format( "$%d", player.GetAmountPaid() ) );
-				m_players->SetCellValue( row, 34, wxString::Format( "$%d", player.GetValue() - player.GetAmountPaid() ) );
+				m_players->SetCellValue( row, 34, wxString::Format( "$%d", (int) player.GetValue() - player.GetAmountPaid() ) );
 				m_players->SetCellValue( row, 35, const_cast<CPlayer &>( player ).GetOwner() );
 			}
 			RecalculatePlayersValue( inflation, true, NULL, wxEmptyString, 0 );

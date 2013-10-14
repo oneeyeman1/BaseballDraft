@@ -68,7 +68,7 @@ playerid integer primary key
 name varchar(70)
 ishitter char
 age integer
-value integer
+value double
 teamid integer
 currvalue double
 notes varchar(125)
@@ -121,7 +121,7 @@ foreign key(scoreid) references scorepitch(scoreid)
 leagueplayershitter
 id integer
 playerid integer
-value integer
+value double
 currvalue double
 scoreid integer
 score double
@@ -133,7 +133,7 @@ foreign key(playerid) reference players(playerid)
 leagueplayerspitcher
 id integer
 playerid integer
-value integer
+value double
 currvalue double
 scoreid integer
 score double

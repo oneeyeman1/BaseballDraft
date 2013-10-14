@@ -618,8 +618,8 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 						return;
 					if( res == wxID_OK )
 					{
-						DoEditPlayerFromZero( dlg1.GetDroppedPlayerName(), 0, changedValue, player, NEGATIVE_DIFF );
 						name = dlg1.GetDroppedPlayerName();
+						DoEditPlayerFromZero( name, 0, changedValue, player, NEGATIVE_DIFF );
 						diff = currentValue - changedValue;
 					}
 				}
@@ -1527,7 +1527,7 @@ void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, int cha
 		double currValue = (*it).GetCurrentValue();
 		if( currValue < 1 && currValue != 0 )
 		{
-			lessMinValue += (*it).GetCurrentValue();
+			lessMinValue += 1 - (*it).GetCurrentValue();
 			lessMinValueCount++;
 		}
 	}
@@ -1549,8 +1549,8 @@ void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, int cha
 					wxString playerName = (*it).GetName();
 					if( playerName != name && playerName != player->GetName() )
 					{
-						(*it).SetValue( (*it).GetValue() - newDiff );
 						(*it).SetCurrentValue( (*it).GetCurrentValue() - newDiff );
+						(*it).SetValue( (*it).GetCurrentValue() );
 					}
 				}
 			}

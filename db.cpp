@@ -1054,7 +1054,7 @@ int CDb::GetPlayersForLeague(CLeagueData &m_data, const CLeagueSettings &setting
 					sqlite3_finalize( stm4 );
 					return result;
 				}
-				CPlayer player( sqlite3_column_int( stmt, 0 ), sqlite3_column_text( stmt, 1 ), positions, sqlite3_column_int( stmt, 2 ), sqlite3_column_int( stmt, 3 ), sqlite3_column_text( stmt, 4 ), sqlite3_column_text( stmt, 5 ), scoring, true, sqlite3_column_double( stmt, 6 ), sqlite3_column_text( stmt, 7 ), sqlite3_column_int( stmt, 9 ) );
+				CPlayer player( sqlite3_column_int( stmt, 0 ), sqlite3_column_text( stmt, 1 ), positions, sqlite3_column_int( stmt, 2 ), sqlite3_column_double( stmt, 3 ), sqlite3_column_text( stmt, 4 ), sqlite3_column_text( stmt, 5 ), scoring, true, sqlite3_column_double( stmt, 6 ), sqlite3_column_text( stmt, 7 ), sqlite3_column_int( stmt, 9 ) );
 				player.SetOriginalScore( originalScoring );
 				player.SetNewPlayer( wxAtoi( sqlite3_column_text( stmt, 10 ) ) == 1 ? true : false );
 				if( result == SQLITE_OK && sqlite3_column_int( stmt, 8 ) == 1 )
@@ -1233,7 +1233,7 @@ int CDb::GetPlayersForLeague(CLeagueData &m_data, const CLeagueSettings &setting
 						sqlite3_finalize( stm4 );
 						return result;
 					}
-					CPlayer player( sqlite3_column_int( stmt, 0 ), sqlite3_column_text( stmt, 1 ), positions, sqlite3_column_int( stmt, 2 ), sqlite3_column_int( stmt, 3 ), sqlite3_column_text( stmt, 4 ), sqlite3_column_text( stmt, 5 ), scoring, false, sqlite3_column_double( stmt, 6 ), sqlite3_column_text( stmt, 7 ), sqlite3_column_int( stmt, 9 ) );
+					CPlayer player( sqlite3_column_int( stmt, 0 ), sqlite3_column_text( stmt, 1 ), positions, sqlite3_column_int( stmt, 2 ), sqlite3_column_double( stmt, 3 ), sqlite3_column_text( stmt, 4 ), sqlite3_column_text( stmt, 5 ), scoring, false, sqlite3_column_double( stmt, 6 ), sqlite3_column_text( stmt, 7 ), sqlite3_column_int( stmt, 9 ) );
 					player.SetOriginalScore( originalScoring );
 					player.SetNewPlayer( wxAtoi( sqlite3_column_text( stmt, 10 ) ) == 1 ? true : false );
 					if( result == SQLITE_OK && sqlite3_column_int( stmt, 8 ) == 1 )
@@ -1545,7 +1545,7 @@ int CDb::AddNewPlayer(CPlayer &player, const int leagueId, bool skipCheck)
 		}
 	}
 	wxString query2, query3, query4;
-	wxString query1 = wxString::Format( "INSERT INTO players VALUES( NULL, \"%s\", \"%d\", %d, %d, (SELECT teamid FROM teams WHERE shortname = \"%s\"), %.3f, \"\", \"0\", \"1\" );", const_cast<CPlayer &>( player ).GetName(), player.IsHitter() ? 1 : 0, player.GetAge(), player.GetValue(), const_cast<CPlayer &>( player ).GetAbbeviatedTeamName(), player.GetCurrentValue() );
+	wxString query1 = wxString::Format( "INSERT INTO players VALUES( NULL, \"%s\", \"%d\", %d, %.2f, (SELECT teamid FROM teams WHERE shortname = \"%s\"), %.3f, \"\", \"0\", \"1\" );", const_cast<CPlayer &>( player ).GetName(), player.IsHitter() ? 1 : 0, player.GetAge(), player.GetValue(), const_cast<CPlayer &>( player ).GetAbbeviatedTeamName(), player.GetCurrentValue() );
 	wxString query;
 	sqlite3_exec( m_handle, "BEGIN", 0, 0, 0 );
 	if( ( result = sqlite3_prepare_v2( m_handle, query1, -1, &stmt, 0 ) ) == SQLITE_OK )
@@ -1596,7 +1596,7 @@ int CDb::AddNewPlayer(CPlayer &player, const int leagueId, bool skipCheck)
 				{
 					sqlite3_bind_int( stm1, 1, leagueId );
 					sqlite3_bind_int( stm1, 2, playerid );
-					sqlite3_bind_int( stm1, 3, player.GetValue() );
+					sqlite3_bind_double( stm1, 3, player.GetValue() );
 					sqlite3_bind_double( stm1, 4, player.GetCurrentValue() );
 				}
 				if( ( result = sqlite3_prepare_v2( m_handle, query4, -1, &stm2, 0 ) ) == SQLITE_OK )
@@ -1706,7 +1706,7 @@ bool CDb::UpdatePlayer(const CPlayer &player, const int leagueId)
 						wxMessageBox( wxString::Format( "Error preparing query for inserting score information: %s", sqlite3_errmsg( m_handle ) ) );
 					else
 					{
-						sqlite3_bind_int( stmt, 1, player.GetValue() );
+						sqlite3_bind_double( stmt, 1, player.GetValue() );
 						sqlite3_bind_double( stmt, 2, player.GetCurrentValue() );
 						sqlite3_bind_int( stmt, 3, player.IsPlayerDrafted() ? 1 : 0 );
 						sqlite3_bind_int( stmt, 5, leagueId );
@@ -1845,9 +1845,9 @@ int CDb::AddPlayerToLeague(const CPlayer &player, const int &leagueId)
 	int success = SQLITE_OK;
 	wxString query, query1;
 	if( player.IsHitter() )
-		query = wxString::Format( "INSERT INTO leagueplayershitter VALUES( %d, %d, %d, %.2f, (SELECT scoreid FROM scorehits WHERE scorename = ?), ?, 0, \"1\" );", leagueId, player.GetPlayerId(), player.GetValue(), player.GetCurrentValue() );
+		query = wxString::Format( "INSERT INTO leagueplayershitter VALUES( %d, %d, %.2f, %.2f, (SELECT scoreid FROM scorehits WHERE scorename = ?), ?, 0, \"1\" );", leagueId, player.GetPlayerId(), player.GetValue(), player.GetCurrentValue() );
 	else
-		query = wxString::Format( "INSERT INTO leagueplayerspitcher VALUES( %d, %d, %d, %.2f, (SELECT scoreid FROM scorepitch WHERE scorename = ?), ?, 0, \"1\" );", leagueId, player.GetPlayerId(), player.GetValue(), player.GetCurrentValue() );
+		query = wxString::Format( "INSERT INTO leagueplayerspitcher VALUES( %d, %d, %.2f, %.2f, (SELECT scoreid FROM scorepitch WHERE scorename = ?), ?, 0, \"1\" );", leagueId, player.GetPlayerId(), player.GetValue(), player.GetCurrentValue() );
 	query1 = wxString::Format( "INSERT INTO playerpositioninleague VALUES( %d, ?, %d );", player.GetPlayerId(), leagueId );
 	success = sqlite3_exec( m_handle, "BEGIN", 0, 0, 0 );
 	if( success != SQLITE_OK )
