@@ -18,7 +18,8 @@
 CDroppedValuePlayer::CDroppedValuePlayer(wxWindow* parent, const std::vector<CPlayer> *player, int condition) : wxDialog(parent, wxID_ANY, wxEmptyString)
 {
 	m_players = *player;
-	int sum = 0, count = 0;
+	double sum = 0;
+	int count = 0;
 	m_panel = new wxPanel( this );
 	m_condition = condition;
     const wxString *m_playersList_choices = NULL;

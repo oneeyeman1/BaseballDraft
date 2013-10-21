@@ -134,7 +134,6 @@
     <ClInclude Include="playerdropped.h" />
     <ClInclude Include="playerspanel.h" />
     <ClInclude Include="playerspanelgrid.h" />
-    <ClInclude Include="playerspanelgridtable.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SQLite\sqlite3.h" />
     <ClInclude Include="SQLite\sqlite3ext.h" />
@@ -172,7 +171,6 @@
     <ClCompile Include="playerdropped.cpp" />
     <ClCompile Include="playerspanel.cpp" />
     <ClCompile Include="playerspanelgrid.cpp" />
-    <ClCompile Include="playerspanelgridtable.cpp" />
     <ClCompile Include="SQLite\sqlite3.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level3</WarningLevel>

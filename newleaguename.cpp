@@ -30,7 +30,7 @@ CNewLeagueName::CNewLeagueName(wxWindow *parent, const CDb &db, CLeagueSettings 
 	wxSizer *salaryTypeSizer = new wxBoxSizer( wxHORIZONTAL );
 	wxSizer *salarySizer = new wxBoxSizer( wxVERTICAL );
 	m_label1 = new wxStaticText( this, wxID_ANY, "Enter League Name: " );
-	m_name = new wxTextCtrl( this, wxID_ANY, !settings ? wxEmptyString : settings->GetLeagueName(), wxDefaultPosition, wxDefaultSize, 0L );
+	m_name = new wxTextCtrl( this, wxID_ANY, !settings ? wxString() : settings->GetLeagueName(), wxDefaultPosition, wxDefaultSize, 0L );
 	m_label2 = new wxStaticText( this, wxID_ANY, "Number of Owners" );
 	m_owners = new wxSpinCtrl( this, wxID_ANY, !settings ? "10" : wxString::Format( "%d", settings->GetOwnersNumber() ), wxDefaultPosition, wxSize( 50, -1 ), wxSP_ARROW_KEYS, 2, 30, 10 );
 	m_label3 = new wxStaticText( this, wxID_ANY, "Salary:" );

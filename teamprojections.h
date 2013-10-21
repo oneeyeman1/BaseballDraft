@@ -31,7 +31,7 @@ public:
 protected:
 	void ChangeProjections(const wxString &owner, const CPlayer &player);
 private:
-	std::map<wxString,std::vector<Projections>> m_score;
+	std::map<wxString,std::vector<Projections> > m_score;
 	std::vector<Projections> m_projs[53];
 	wxGrid *m_stats, *m_projections;
 	wxToggleButton *m_targets;

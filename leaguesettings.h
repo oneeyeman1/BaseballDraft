@@ -254,7 +254,7 @@ struct PlayerSorter
 			}
 		case SORT_BY_VALUE:
 			{
-				int value1 = player1.GetValue(), value2 = player2.GetValue(), currValue1 = player1.GetCurrentValue(), currValue2 = player2.GetCurrentValue();
+				double value1 = player1.GetValue(), value2 = player2.GetValue(), currValue1 = player1.GetCurrentValue(), currValue2 = player2.GetCurrentValue();
 				if( m_forward )
 				{
 					if( value1 > value2 )
@@ -313,7 +313,7 @@ struct PlayerSorter
 			}
 		case SORT_BY_PROFIT:
 			{
-				int profit1 = player1.GetValue() - player1.GetAmountPaid(), profit2 = player2.GetValue() - player2.GetAmountPaid();
+				double profit1 = player1.GetValue() - player1.GetAmountPaid(), profit2 = player2.GetValue() - player2.GetAmountPaid();
 				return m_forward ? ( profit1 > profit2 ? true : profit1 == profit2 ? name1 < name2 : false ) : ( profit1 > profit2 ? true : profit1 == profit2 ? name1 < name2 : false );
 				break;
 			}

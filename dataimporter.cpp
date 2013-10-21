@@ -77,7 +77,7 @@ CDataImporter::~CDataImporter(void)
 	m_zin = NULL;
 }
 
-void CDataImporter::ReadData(std::vector<std::vector<wxString>> &hitters, std::vector<std::vector<wxString>> &pitchers)
+void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::vector<std::vector<wxString> > &pitchers)
 {
 	ZipCatalog::iterator it;
 	wxXmlDocument strings;

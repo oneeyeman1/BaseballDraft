@@ -835,17 +835,17 @@ int CDb::GetLeagueId(bool isUpdate, const wxString &name)
 	}
 }
 
-int CDb::InsertPlayers(const std::vector<std::vector<wxString>> &hitters, const std::vector<std::vector<wxString>> &pitchers)
+int CDb::InsertPlayers(const std::vector<std::vector<wxString> > &hitters, const std::vector<std::vector<wxString> > &pitchers)
 {
 	wxString playerid = wxEmptyString;
-	std::vector<std::vector<wxString>> hits = const_cast<std::vector<std::vector<wxString>> &>( hitters );
-	std::vector<std::vector<wxString>> pits = const_cast<std::vector<std::vector<wxString>> &>( pitchers );
+	std::vector<std::vector<wxString> > hits = const_cast<std::vector<std::vector<wxString> > &>( hitters );
+	std::vector<std::vector<wxString> > pits = const_cast<std::vector<std::vector<wxString> > &>( pitchers );
 	if( sqlite3_exec( m_handle, "BEGIN", 0, 0, 0 ) != SQLITE_OK )
 	{
 		wxMessageBox( "Database error: Can't insert players info into the database" );
 		return -1;
 	}
-	for( std::vector<std::vector<wxString>>::iterator it_out = hits.begin(); it_out < hits.end(); it_out++ )
+	for( std::vector<std::vector<wxString> >::iterator it_out = hits.begin(); it_out < hits.end(); it_out++ )
 	{
 		for( std::vector<wxString>::iterator it_in = it_out->begin(); it_in < it_out->end(); it_in++ )
 		{
@@ -874,7 +874,7 @@ int CDb::InsertPlayers(const std::vector<std::vector<wxString>> &hitters, const 
 		}
 		playerid = wxEmptyString;
 	}
-	for( std::vector<std::vector<wxString>>::iterator it_out = pits.begin(); it_out < pits.end(); it_out++ )
+	for( std::vector<std::vector<wxString> >::iterator it_out = pits.begin(); it_out < pits.end(); it_out++ )
 	{
 		for( std::vector<wxString>::iterator it_in = it_out->begin(); it_in < it_out->end(); it_in++ )
 		{

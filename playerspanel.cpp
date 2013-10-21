@@ -19,7 +19,6 @@
 #include "playerspanelgrid.h"
 #include "gridtotalcell.h"
 #include "leaguesettings.h"
-#include "playerspanelgridtable.h"
 #include "namecompleter.h"
 #include "playerspanel.h"
 #include "teamsroster.h"
@@ -324,9 +323,9 @@ void CPlayersPanel::set_properties()
 		if( (*it).IsPlayerDrafted() )
 		{
 			int paid = (*it).GetAmountPaid();
-			m_players->SetCellValue( row, 33, paid == 0 ? wxEmptyString : wxString::Format( "$%d", paid ) );
-			int profit = (*it).GetValue() - (*it).GetAmountPaid();
-			m_players->SetCellValue( row, 34, profit == 0 ? wxEmptyString : wxString::Format( "$%d", profit ) );
+			m_players->SetCellValue( row, 33, paid == 0 ? wxString() : wxString::Format( "$%d", paid ) );
+			double profit = (*it).GetValue() - (*it).GetAmountPaid();
+			m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%d", profit ) );
 			m_players->SetCellValue( row, 35, (*it).GetOwner() );
 		}
 		m_players->SetCellValue( row, 64, (*it).GetNotes() );
@@ -617,7 +616,7 @@ void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 	if( player.IsPlayerDrafted() )
 	{
 		int paid = player.GetAmountPaid();
-		m_players->SetCellValue( row, 33, paid == 0 ? wxEmptyString : wxString::Format( "$%d", paid ) );
+		m_players->SetCellValue( row, 33, paid == 0 ? wxString() : wxString::Format( "$%d", paid ) );
 		m_players->SetCellValue( row, 35, const_cast<CPlayer &>( player ).GetOwner() );
 	}
 	else
@@ -626,8 +625,9 @@ void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 		m_players->SetCellValue( row, 34, wxEmptyString );
 		m_players->SetCellValue( row, 35, wxEmptyString );
 	}
-	int profit = player.GetValue() - player.IsPlayerDrafted() ? player.GetAmountPaid() : player.GetCurrentValue();
-	m_players->SetCellValue( row, 34, profit == 0 ? wxEmptyString : wxString::Format( "$%d", profit ) );
+	double diff = player.GetValue() - player.IsPlayerDrafted();
+	double profit = diff ? (double) player.GetAmountPaid() : player.GetCurrentValue();
+	m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%.2f", profit ) );
 	m_players->SetCellValue( row, 64, const_cast<CPlayer &>( player ).GetNotes() );
 	for( int i = 0; i < 64; i++ )
 		m_players->SetReadOnly( row, i, true );
@@ -1249,7 +1249,7 @@ void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPla
 	}
 	else if( !isEdit )
 	{
-		CPlayer newPlayer( 0, const_cast<CPlayer *>( player )->GetName(), const_cast<CPlayer *>( player )->GetPositions(), player->GetAge(), player->GetValue(), const_cast<CPlayer *>( player )->GetTeam(), const_cast<CPlayer *>( player )->GetAbbeviatedTeamName(), const_cast<CPlayer *>( player )->GetScoring(), player->IsHitter(), player->GetCurrentValue(), const_cast<CPlayer *>( player )->GetNotes(), player->GetValue() );
+		CPlayer newPlayer( const_cast<CPlayer *>( player )->GetRange(), const_cast<CPlayer *>( player )->GetName(), const_cast<CPlayer *>( player )->GetPositions(), player->GetAge(), player->GetValue(), const_cast<CPlayer *>( player )->GetTeam(), const_cast<CPlayer *>( player )->GetAbbeviatedTeamName(), const_cast<CPlayer *>( player )->GetScoring(), player->IsHitter(), player->GetCurrentValue(), const_cast<CPlayer *>( player )->GetNotes(), player->GetValue() );
 		newPlayer.SetNewPlayer( true );
 		m_data->m_players->push_back( newPlayer );
 		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )

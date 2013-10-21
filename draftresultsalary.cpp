@@ -67,7 +67,8 @@ void CDraftResultSalary::PerformDraft(const CPlayer &player)
 	int row;
 	bool found = false;
 	wxString totalAmountPaid, totalPlayersLeft, totalProfit;
-	int totalAmtPaid = 0, total$Left = 0, playersLeft = 0, profit = 0;
+	int totalAmtPaid = 0, total$Left = 0, playersLeft = 0;
+	double profit = 0;
 	for( row = 0; row < m_salaryInfo->GetNumberRows() && !found; row++ )
 	{
 		if( m_salaryInfo->GetRowLabelValue( row ) == const_cast<CPlayer &>( player ).GetOwner() )
@@ -106,7 +107,7 @@ void CDraftResultSalary::PerformDraft(const CPlayer &player)
 	m_salaryInfo->SetCellValue( row, 3, wxString::Format( "%d", playersLeft ) );
 	m_salaryInfo->SetCellValue( row, 4, wxString::Format( "%.3f", (double) total$Left / playersLeft  ) );
 	m_salaryInfo->SetCellValue( row, 5, wxString::Format( "%d", total$Left - (playersLeft - 1 ) ) );
-	m_salaryInfo->SetCellValue( row, 6, wxString::Format( "%d", profit ) );
+	m_salaryInfo->SetCellValue( row, 6, wxString::Format( "%.2f", profit ) );
 }
 
 void CDraftResultSalary::UnAssignPlayer(const CPlayer &player)
@@ -128,16 +129,18 @@ void CDraftResultSalary::UnAssignPlayer(const CPlayer &player)
 	wxString maxBid = m_salaryInfo->GetCellValue( row, 5 );
 	wxString profit = m_salaryInfo->GetCellValue( row, 6 );
 	int totalAmount = wxAtoi( totalAmountPaid ) - player.GetAmountPaid();
-	m_salaryInfo->SetCellValue( row, 1, totalAmount == 0 ? wxEmptyString : wxString::Format( "%d", totalAmount ) );
+	m_salaryInfo->SetCellValue( row, 1, totalAmount == 0 ? wxString() : wxString::Format( "%d", totalAmount ) );
 	int total$ = m_totalSalary - totalAmount;
-	m_salaryInfo->SetCellValue( row, 2, total$ == 0 ? wxEmptyString : wxString::Format( "%d", total$ ) );
+	m_salaryInfo->SetCellValue( row, 2, total$ == 0 ? wxString() : wxString::Format( "%d", total$ ) );
 	int totalPlayersLeft = wxAtoi( playersLeft ) + 1;
 	m_salaryInfo->SetCellValue( row, 3, wxString::Format( "%d", totalPlayersLeft ) );
-	m_salaryInfo->SetCellValue( row, 4, totalPlayersLeft == 0 ? wxEmptyString : wxString::Format( "%.3f", (double) total$ / totalPlayersLeft ) );
+	m_salaryInfo->SetCellValue( row, 4, totalPlayersLeft == 0 ? wxString() : wxString::Format( "%.3f", (double) total$ / totalPlayersLeft ) );
 	int maximumBid = total$ - (totalPlayersLeft - 1 );
-	m_salaryInfo->SetCellValue( row, 5, maximumBid == 0 ? wxEmptyString : wxString::Format( "%d", maximumBid ) );
-	int currentProfit = player.GetValue() - player.GetAmountPaid();
-	m_salaryInfo->SetCellValue( row, 6, wxString::Format( "%d", wxAtoi( profit ) - currentProfit ) );
+	m_salaryInfo->SetCellValue( row, 5, maximumBid == 0 ? wxString() : wxString::Format( "%d", maximumBid ) );
+	double currentProfit = player.GetValue() - player.GetAmountPaid();
+	double prof;
+	profit.ToDouble( &prof );
+	m_salaryInfo->SetCellValue( row, 6, wxString::Format( "%.2f", prof - currentProfit ) );
 }
 
 void CDraftResultSalary::ResetPanel()

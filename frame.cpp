@@ -24,7 +24,6 @@
 #include "textctrl.h"
 #include "leaguesettings.h"
 #include "mytipdialog.h"
-#include "playerspanelgridtable.h"
 #include "enterstats.h"
 #include "addnewplayer.h"
 #include "db.h"
@@ -116,7 +115,7 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	m_columnsDisplayed["Owner"] = true;
 	m_columnsDisplayed["Age"] = false;
 	m_columnsDisplayed["Notes"] = true;
-	m_budget = m_valueLeft = m_data->m_settings->GetSalary() * m_data->m_settings->GetOwnersNumber();
+	m_budget = m_valueLeft = (double) m_data->m_settings->GetSalary() * m_data->m_settings->GetOwnersNumber();
 	m_panel = new wxPanel( this, wxID_ANY );
 	m_label1 = new wxStaticText( m_panel, wxID_ANY, "Owner" );
 	const wxString *m_teams_choices = NULL;
@@ -522,14 +521,14 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 		player = NULL;
 		isEdit = false;
 	}
-	CAddNewPlayer dlg( this, title, teamNames, *(m_data->m_settings), player );
+	CAddNewPlayer dlg( this, title, teamNames, *(m_data->m_settings), player, m_data->m_players->size() );
 	if( dlg.ShowModal() == wxID_OK )
 	{
 		if( !isEdit )
 		{
 			player = &(dlg.GetNewPlayer());
 			wxString playerDropped = wxEmptyString;
-			int value = player->GetValue();
+			double value = player->GetValue();
 			if( value > 0 )
 			{
 				CDroppedValuePlayer dlg1( this, m_data->m_players, ADDPLAYER );
@@ -544,6 +543,18 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 			}
 			if( m_db->AddNewPlayer( *player, m_leagueId, false ) == SQLITE_OK )
 			{
+				int currentRank = m_data->m_players->size() + 1, changedRank = dlg.GetChangedRank();
+				if( currentRank > changedRank )
+				{
+					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+					{
+						int range = (*it).GetRange();
+						if( range >= changedRank && range < currentRank )
+							(*it).SetRange( range + 1 );
+						if( range == currentRank )
+							(*it).SetRange( changedRank );
+					}
+				}
 				player->SetNewPlayer( true );
 				bool found = false;
 				if( value > 0 )
@@ -559,6 +570,13 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 						}
 					}
 					double diff = - ( (double) value / ( m_availablePlayers - m_draftResult.size() ) );
+					wxBeginBusyCursor();
+					m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
+					wxEndBusyCursor();
+				}
+				else
+				{
+					double diff = 0;
 					wxBeginBusyCursor();
 					m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
 					wxEndBusyCursor();
@@ -586,8 +604,33 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 			wxString name;
 			if( !isDrafted )
 			{
-				int changedValue = dlg.GetChangedCurrentValue(), currentValue = player->GetValue();
-				if( ( changedValue == 0 || currentValue == 0 ) && m_editPlayerTipDisplayed )
+				double currentValue = player->GetValue(), changedValue = dlg.GetChangedCurrentValue();
+				int currentRank = player->GetRange(), changedRank = dlg.GetChangedRank();
+				if( currentRank < changedRank )
+				{
+					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+					{
+						int range = (*it).GetRange();
+						if( range > currentRank && range <= changedRank )
+							(*it).SetRange( range - 1 );
+						if( range == currentRank )
+							(*it).SetRange( changedRank );
+					}
+				}
+				if( currentRank > changedRank )
+				{
+					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+					{
+						int range = (*it).GetRange();
+						if( range >= changedRank && range < currentRank )
+							(*it).SetRange( range + 1 );
+						if( range == currentRank )
+							(*it).SetRange( changedRank );
+					}
+				}
+				if( changedValue == 0 && currentValue == 0 )
+					diff = 0;
+				else if( ( changedValue == 0 || currentValue == 0 ) && m_editPlayerTipDisplayed )
 				{
 					CMyTipDialog dlg( this/*, *provider*/, true );
 					dlg.ShowModal();
@@ -669,7 +712,7 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				int profit = wxAtoi( m_profit->GetLabel() );
 				m_profit->SetLabel( wxString::Format( "$%d", profit - val ) );
 				m_maxBid->SetLabel( wxString::Format( "%d", ( salaryLeft - val ) - ( playersLeft - 1 ) ) );
-				int sum = 0;
+				double sum = 0;
 				for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 				{
 					sum += (*it).GetValue();
@@ -870,7 +913,8 @@ void CFrame::OnSelectingOwner(wxCommandEvent &WXUNUSED(event))
 	wxString name = m_teams->GetValue();
 	std::vector<CPlayer>::iterator it;
 	int count = 0;
-	int salaryLeft = 0, playersLeft = 0, profit = 0;
+	int salaryLeft = 0, playersLeft = 0;
+	double profit = 0.0;
 	for( it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 	{
 		if( (*it).GetOwner() == name )
@@ -1246,8 +1290,10 @@ void CFrame::DoUnAssignPlayer(bool doErase)
 		int salary = wxAtoi( sal.substr( 1, sal.length() ) );
 		salary += contextMenuPlayer->GetAmountPaid();
 		m_salaryLeft->SetLabel( wxString::Format( "$%d", salary ) );
-		int profit = contextMenuPlayer->GetValue() - contextMenuPlayer->GetAmountPaid();
-		m_profit->SetLabel( wxString::Format( "%d", wxAtoi( m_profit->GetLabel() ) - profit ) );
+		double profit = contextMenuPlayer->GetValue() - contextMenuPlayer->GetAmountPaid();
+		double prof;
+		m_profit->GetLabel().ToDouble( &prof );
+		m_profit->SetLabel( wxString::Format( "%.2f", prof - profit ) );
 		int playersLeft = wxAtoi( m_playersLeft->GetLabel() );
 		m_playersLeft->SetLabel( wxString::Format( "%d", ++playersLeft ) );
 		m_average->SetLabel( wxString::Format( "%.2f", (double) salary / (double) playersLeft ) );
@@ -1351,7 +1397,7 @@ bool CFrame::IsGood()
 void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const wxString &name)
 {
 	bool found = false;
-	int beginValue = 0;
+	double beginValue = 0;
 	m_panel2->PerformDraft( player );
 	m_panel3->AddPlayer( owner, player );
 	m_panel4->GetDraftResultPanel().AddDraftedPlayer( player, true );
@@ -1368,17 +1414,19 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 			if( m_teams->GetValue() == owner )
 			{
 				DisplayDraftedPlayer( (*it_new).IsHitter() ? m_hittersDrafted : m_pitchersDrafted, &( const_cast<CPlayer &>( player ) ), -1 );
-				int profit = player.GetValue() - player.GetAmountPaid();
-				int temp = wxAtoi( m_profit->GetLabel() ) + profit;
-				m_profit->SetLabel( wxString::Format( "%d", temp ) );
-				temp = wxAtoi( m_playersLeft->GetLabel() ) - 1;
-				m_playersLeft->SetLabel( wxString::Format( "%d", temp ) );
+				double profit = player.GetValue() - player.GetAmountPaid();
+				double prof;
+				m_profit->GetLabel().ToDouble( &prof );
+				double temp = prof + profit;
+				m_profit->SetLabel( wxString::Format( "%.2f", temp ) );
+				int tmp = wxAtoi( m_playersLeft->GetLabel() ) - 1;
+				m_playersLeft->SetLabel( wxString::Format( "%d", tmp ) );
 				wxString salary = m_salaryLeft->GetLabel();
 				int sal = wxAtoi( salary.substr( 1, salary.length() ) );
 				sal -= player.GetAmountPaid();
 				m_salaryLeft->SetLabel( wxString::Format( "$%d", sal ) );
 				m_average->SetLabel( wxString::Format( "%.2f", (double) sal / temp ) );
-				int maxBid = ( sal ) - ( temp - 1 );
+				int maxBid = ( sal ) - ( (int) temp - 1 );
 				m_maxBid->SetLabel( wxString::Format( "$%d", maxBid ) );
 				m_draftPlayer->GetAmountPaidCtrl().SetRange( 1, maxBid );
 			}
@@ -1395,7 +1443,7 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 		}
 	}
 	found = true;
-	int sum = 0;
+	double sum = 0;
 	for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 		sum += (*it).GetValue();
 	double inflation = ( (double) ( m_budget - player.GetAmountPaid() ) / (double) ( m_budget - sum ) );
@@ -1491,9 +1539,9 @@ void CFrame::DoPerformResetLeague(const int &league)
 	wxEndBusyCursor();
 }
 
-void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, int changedValue, CPlayer *player, int style)
+void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, double changedValue, CPlayer *player, int style)
 {
-	int value;
+	double value;
 	if( droppedValue == 0 && name != wxEmptyString )
 		value = changedValue - 1;
 	else if( name == wxEmptyString )

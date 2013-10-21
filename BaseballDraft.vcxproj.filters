@@ -123,9 +123,6 @@
     <ClInclude Include="textctrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="playerspanelgridtable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="playerdropped.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -222,9 +219,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="textctrl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="playerspanelgridtable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="playerdropped.cpp">

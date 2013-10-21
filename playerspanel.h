@@ -78,7 +78,6 @@ private:
 	wxString m_sorter;
 	int m_sortColumn;
 	PlayerSorter m_sort;
-	CPlayersPanelGridTable *m_table;
 	DECLARE_DYNAMIC_CLASS(CPlayersPanel)
 };
 

@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include "wx/tipdlg.h"
+#include "wx/spinctrl.h"
 #include "wx/combo.h"
 #include "wx/collpane.h"
 #include "wx/valnum.h"
@@ -19,7 +20,7 @@
 #include "newplayerpositions.h"
 #include "addnewplayer.h"
 
-CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std::map<wxString,wxString> &names, const CLeagueSettings &settings, const CPlayer *player) : wxDialog( parent, wxID_ANY, title )
+CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std::map<wxString,wxString> &names, const CLeagueSettings &settings, const CPlayer *player, int rank) : wxDialog( parent, wxID_ANY, title )
 {
 	m_player = const_cast<CPlayer *>( player );
 	m_teams = names;
@@ -50,17 +51,22 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
 	{
 		m_label6 = new wxStaticText( m_panel, wxID_ANY, "BegValue:" );
 		m_value = new wxTextCtrl( m_panel, wxID_ANY, wxString::Format( "%.2f", player->GetValue() ), wxDefaultPosition, wxDefaultSize, 0, wxFloatingPointValidator<double>() );
+		m_rank = new wxSpinCtrl( m_panel, wxID_ANY, wxString::Format( "%d", const_cast<CPlayer *>( player )->GetRange() ), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxSP_WRAP, 1, 313, const_cast<CPlayer *>( player )->GetRange() );
 	}
 	else if( !player )
 	{
 		m_label6 = new wxStaticText( m_panel, wxID_ANY, "BegValue" );
 		m_value = new wxTextCtrl( m_panel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, 0, wxIntegerValidator<unsigned int>() );
+		m_rank = new wxSpinCtrl( m_panel, wxID_ANY, wxString::Format( "%d", rank + 1 ), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxSP_WRAP | wxALIGN_CENTRE_HORIZONTAL, 1, rank + 1, rank + 1 );
 	}
 	else if( player )
 	{
 		m_label6 = new wxStaticText( m_panel, wxID_ANY, "AmtPaid:" );
 		m_value = new wxTextCtrl( m_panel, wxID_ANY, wxString::Format( "%d", player->GetAmountPaid() ), wxDefaultPosition, wxDefaultSize, 0, wxIntegerValidator<int>() );
+		m_rank = new wxSpinCtrl( m_panel, wxID_ANY, wxString::Format( "%d", const_cast<CPlayer *>( player )->GetRange() ), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxSP_WRAP | wxALIGN_CENTRE_HORIZONTAL, 1, 313, const_cast<CPlayer *>( player )->GetRange() );
+		m_rank->Enable( false );
 	}
+	m_label7 = new wxStaticText( m_panel, wxID_ANY, "Rank" );
     m_stats = new wxButton( m_panel, wxID_ANY, "Enter Stats..." );
     m_add = new wxButton( m_panel, wxID_ANY, player ? "Edit Player" : "Add Player" );
     m_cancel = new wxButton( m_panel, wxID_CANCEL, "Cancel" );
@@ -70,13 +76,15 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
     wxBoxSizer* vertical = new wxBoxSizer( wxVERTICAL );
     wxBoxSizer* sizer_3 = new wxBoxSizer( wxHORIZONTAL );
     wxBoxSizer* sizer_4 = new wxBoxSizer( wxHORIZONTAL );
-    wxFlexGridSizer* controls = new wxFlexGridSizer( 6, 2, 10, 10 );
+    wxFlexGridSizer* controls = new wxFlexGridSizer( 7, 2, 10, 10 );
     horizontal->Add( 5, 5, 0, wxEXPAND, 0 );
     vertical->Add( 5, 5, 0, wxEXPAND, 0 );
     controls->Add( m_label1, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_first, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_label2, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_last, 0, wxALIGN_CENTER_VERTICAL, 0 );
+	controls->Add( m_label7, 0, wxALIGN_CENTER_VERTICAL, 0 );
+	controls->Add( m_rank, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_label3, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_age, 0, wxALIGN_CENTER_VERTICAL, 0 );
     controls->Add( m_label4, 0, wxALIGN_CENTER_VERTICAL, 0 );
@@ -109,6 +117,8 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
 	m_team->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_position->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_value->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
+	if( player )
+		m_value->SetFocus();
 }
 
 CAddNewPlayer::~CAddNewPlayer(void)
@@ -243,6 +253,7 @@ void CAddNewPlayer::OnAddNewPlayer(wxCommandEvent &WXUNUSED(event))
 				m_pos.push_back( tokens.GetNextToken() );
 			m_player = new CPlayer( 0, m_first->GetValue() + " " + m_last->GetValue(), m_pos, wxAtoi( m_age->GetValue() ), wxAtoi( m_value->GetValue() ), m_teams[m_team->GetValue()], m_team->GetValue(), m_statistics, m_position->GetValue().find( "P" ) == wxNOT_FOUND ? true : false, value, wxEmptyString, wxAtoi( m_value->GetValue() ) );
 			m_player->SetNewPlayer( true );
+			m_player->SetRange( m_rank->GetValue() );
 		}
 		else
 		{
@@ -362,6 +373,12 @@ void CAddNewPlayer::PlayerChanging(wxCommandEvent &WXUNUSED(event))
 int CAddNewPlayer::GetChangedAge()
 {
 	return wxAtoi( m_age->GetValue() );
+}
+
+
+int CAddNewPlayer::GetChangedRank()
+{
+	return m_rank->GetValue();
 }
 
 wxString &CAddNewPlayer::GetChangedTeam()

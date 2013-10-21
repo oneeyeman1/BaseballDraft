@@ -28,7 +28,9 @@ void CTextCtrl::OnMouseDown(wxMouseEvent &event)
 wxSize CTextCtrl::DoGetBestSize() const
 {
 	int cx, cy;
+#ifdef __WXMSW__
 	wxMyGetCharSize( GetHWND(), &cx, &cy, GetFont() );
+#endif
 	int wText = 200;
 	int hText = cy;
 	if( m_windowStyle & wxTE_MULTILINE )

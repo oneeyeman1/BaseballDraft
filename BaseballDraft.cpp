@@ -29,7 +29,6 @@
 #include "leaguesettings.h"
 #include "namecompleter.h"
 #include "playerdraft.h"
-#include "playerspanelgridtable.h"
 #include "db.h"
 #include "playerspanel.h"
 #include "teamsroster.h"

@@ -11,5 +11,5 @@ protected:
 
 #ifdef __WXMSW__
 void wxMyGetCharSize(WXHWND wnd, int *x, int *y, const wxFont& the_font);
-#define EDIT_HEIGHT_FROM_CHAR_HEIGHT(cy)    (cy+8)
 #endif
+#define EDIT_HEIGHT_FROM_CHAR_HEIGHT(cy)    (cy+8)

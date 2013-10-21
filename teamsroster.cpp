@@ -16,7 +16,6 @@
 #include "wx/textcompleter.h"
 #include "textctrl.h"
 #include "leaguesettings.h"
-#include "playerspanelgridtable.h"
 #include "db.h"
 #include "teamsroster.h"
 #include "namecompleter.h"

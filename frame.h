@@ -53,7 +53,8 @@ private:
 	wxBoxSizer *m_panelSizer;
 	wxFlexGridSizer *m_teamRosterBottom;
 	CNameCompleter *m_completer;
-	int m_availablePlayers, m_totalSpent, m_draftedBeginValue, m_valueLeft;
+	int m_availablePlayers, m_totalSpent;
+	double m_draftedBeginValue, m_valueLeft;
 	wxString m_oldOwner;
 	CDb *m_db;
 	CLeagueData *m_data;
@@ -75,7 +76,7 @@ protected:
 	void DisplayOwnerParameters(int hitters, int pitchers);
 	void DoUnAssignPlayer(bool doErase);
 	void DoPerformResetLeague(const int &league);
-	void DoEditPlayerFromZero(const wxString name, int droppedValue, int changedValue, CPlayer *player, int style);
+	void DoEditPlayerFromZero(const wxString name, int droppedValue, double changedValue, CPlayer *player, int style);
     wxStaticText* m_label1;
     wxComboBox* m_teams;
     wxButton* m_hideRoster;

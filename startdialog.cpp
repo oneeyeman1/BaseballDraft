@@ -17,6 +17,7 @@
 #include "wx/zipstrm.h"
 
 #include "wx/wizard.h"
+#include "wx/spinctrl.h"
 #include "wx/notebook.h"
 #include "wx/hyperlink.h"
 #include "leaguesettings.h"
@@ -28,7 +29,7 @@
 
 CStartDialog::CStartDialog(const wxString &title) : wxWizard( NULL, wxID_ANY, title, wxNullBitmap )
 {
-	std::vector<std::vector<wxString>> hitters, pitchers;
+	std::vector<std::vector<wxString> > hitters, pitchers;
 	m_good = true;
 //	CDataImporter importer( "2012_DEMO_DB.6.xlsx" );
 //	importer.ReadData( hitters, pitchers );

@@ -42,7 +42,11 @@ CNewLeaguePlayers::CNewLeaguePlayers(wxWindow *parent, CLeagueSettings *settings
 		wxT( "Los Angeles Angels" ),
 		wxT( "Minnesota Twins" ),
 		wxT( "New York Yankees" ),
+#ifdef __WXMSW__
 		wxT( "Oakland A’s" ),
+#else
+		wxT( "Oakland A\’s" ),
+#endif
 		wxT( "Seattle Mariners" ),
 		wxT( "Tampa Bay Rays" ),
 		wxT( "Texas Rangers" ),

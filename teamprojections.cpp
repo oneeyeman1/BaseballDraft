@@ -185,7 +185,7 @@ void CTeamProjections::Resize()
 void CTeamProjections::ChangeProjections(const wxString &owner, const CPlayer &player)
 {
 	bool found = false, found1 = false;
-	for( std::map<wxString,std::vector<Projections>>::iterator it = m_score.begin(); it != m_score.end(); it++ )
+	for( std::map<wxString,std::vector<Projections> >::iterator it = m_score.begin(); it != m_score.end(); it++ )
 	{
 		for( std::map<wxString,double>::iterator it1 = const_cast<CPlayer &>( player ).GetScoring().begin(); it1 != const_cast<CPlayer &>( player ).GetScoring().end() && !found; it1++ )
 		{
@@ -234,7 +234,7 @@ void CTeamProjections::UnAssignPlayer(const CPlayer &player)
 				else
 					val.ToDouble( &value );
 				value -= (*it).second;
-				m_stats->SetCellValue( row, i, value == 0 ? wxEmptyString : wxString::Format( "%.3f", value ) );
+				m_stats->SetCellValue( row, i, value == 0 ? wxString() : wxString::Format( "%.3f", value ) );
 				found = true;
 			}
 		}

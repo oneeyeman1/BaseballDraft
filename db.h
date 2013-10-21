@@ -12,7 +12,7 @@ public:
 	int DeleteLeague(const wxString &league, bool isUpdate);
 	int GetLeagueSettings(CLeagueSettings &settings, int &leagueId);
 	bool CreateLeague(const CLeagueSettings &league, bool isUpdate, const wxString oldLeague, int &leagueId);
-	int InsertPlayers(const std::vector<std::vector<wxString>> &hitters, const std::vector<std::vector<wxString>> &pitchers);
+	int InsertPlayers(const std::vector<std::vector<wxString>> &hitters, const std::vector<std::vector<wxString> > &pitchers);
 	int LoadLeagueData(CLeagueSettings *league, int &leagueId);
 	int GetPlayersForLeague(CLeagueData &m_data, const CLeagueSettings &settings, const int &leagueId, int &numPlayers, std::vector<CPlayer> &draftResult);
 	int GetSelectedTeams(const CLeagueSettings &settings, std::map<wxString,wxString> &teams);
