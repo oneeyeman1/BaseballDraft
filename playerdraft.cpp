@@ -8,6 +8,7 @@
 #endif
 
 #include <map>
+#include <set>
 #include <algorithm>
 #include <vector>
 #include "sqlite3.h"
@@ -18,7 +19,6 @@
 #include "wx/spinctrl.h"
 #include "textctrl.h"
 #include "leaguesettings.h"
-#include "playerspanelgridtable.h"
 #include "db.h"
 #include "namecompleter.h"
 #include "playerspanel.h"
@@ -174,7 +174,7 @@ void CPlayerDraft::OnPlayerNameChange(wxCommandEvent &WXUNUSED(event))
 					score = m_data->m_settings->GetHitScoring();
 				else
 					score = m_data->m_settings->GetPitchScoring();
-				m_amount->SetValue( it->GetValue() );
+				m_amount->SetValue( (int ) it->GetValue() );
 				std::vector<wxString> positions = it->GetPositions();
 				if( !it->IsHitter() && m_data->m_settings->GetLeagueType() )
 					m_position->Append( "P" );
@@ -463,8 +463,7 @@ void CPlayerDraft::AddPlayer(CPlayer player)
 {
 	m_completer->GetPlayers().push_back( player );
 	PlayerSorter sorter;
-	sorter.m_sortType = SORT_BY_NAME;
-	sorter.m_forward = true;
+	sorter.m_type.push_back( SortObject( SORT_BY_NAME, true ) );
 	std::sort( m_completer->GetPlayers().begin(), m_completer->GetPlayers().end(), sorter );
 }
 

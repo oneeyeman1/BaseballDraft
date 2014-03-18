@@ -8,6 +8,7 @@
 #endif
 
 #include <vector>
+#include <set>
 #include <map>
 #include "sqlite3.h"
 #include "wx/tipdlg.h"

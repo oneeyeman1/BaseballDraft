@@ -17,7 +17,8 @@ protected:
 	void DisplayOwnerData(int column);
 private:
 	std::vector<CPlayer> m_draftresult;
-	int *m_salary, *m_maxBid, *m_playersLeft, *m_value, *m_amtPaid, *m_profit;
+	int *m_salary, *m_maxBid, *m_playersLeft, *m_amtPaid, *m_profit;
+	double *m_value;
 	double *m_average;
 	wxGrid *m_roster;
 	int m_rowHeight, m_visibleRow;

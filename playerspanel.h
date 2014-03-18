@@ -11,13 +11,14 @@ public:
 	CPlayersPanel(wxWindow *parent, const CLeagueData &data);
 	~CPlayersPanel(void);
 	wxTextCtrl &GetPlayerNameCtrl();
+	inline PlayerSorter &GetSorter() { return m_sort; };
 	void PerformDraft(const CPlayer &player, double inflation, const wxString &name);
 	void SetPlayerToZero(const wxString &name);
 	void UnAssignPlayer(const CPlayer &player, const double &inflation);
+	void DeletePlayer(const CPlayer &player);
 	void SetSelectionToRow(int row);
 	wxButton &GetAddPlayerButton();
 	wxButton &GetEditColumnsButton();
-	int GetSortingType();
 	CNameCompleter &GetCompleter();
 	void OnFilterHitters(wxCommandEvent &event);
 	void OnFilterAllHitters(wxCommandEvent &event);
@@ -40,7 +41,7 @@ protected:
 	bool m_isResizing;
 	void GeneralPlayerFilter(const CPlayer &player, bool addRow);
 	void PositionPlayerFilter(const CPlayer &player, bool addRow);
-	int FindColumnByLabel(const wxString &label);
+	int FindColumnByLabel(const wxString &label, bool isHitter);
 	void FilterColumns(bool displayHitters, bool displayPitchers);
 	void CapitalizeName(wxString &name);
 	void set_properties();
@@ -49,9 +50,9 @@ protected:
 private:
 	std::map<wxString,bool> m_hitterColumns, m_pitcherColumns, m_columns;
 	std::map<wxString,int> m_gridWidths;
-	int m_pitcherColumn, m_row, m_selection;
+	int m_pitcherColumn, m_row, m_selection, m_oldSortingColumn;
 	CNameCompleter *m_completer;
-	bool m_filter;
+	bool m_filter, m_presorted;
 	wxToggleButton* m_filterC;
 	wxToggleButton* m_filter1B;
 	wxToggleButton* m_filter2B;
@@ -75,8 +76,6 @@ private:
 	wxButton* m_add;
 	wxGrid* m_players;
 	CLeagueData *m_data;
-	wxString m_sorter;
-	int m_sortColumn;
 	PlayerSorter m_sort;
 	DECLARE_DYNAMIC_CLASS(CPlayersPanel)
 };

@@ -6,7 +6,7 @@ public:
 	virtual int OnExit();
 private:
 	CDb *m_db;
-	int m_leagueId;
+	wxLongLong_t m_leagueId;
 	CLeagueSettings *m_leagueSettings;
 };
 

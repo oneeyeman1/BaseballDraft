@@ -8,6 +8,7 @@
 #endif
 
 #include <map>
+#include <set>
 #include <vector>
 #include "sqlite3.h"
 #include "wx/tipdlg.h"
@@ -96,7 +97,7 @@ CTeamsRoster::CTeamsRoster(wxWindow *parent, const CLeagueSettings &settings, co
 	m_maxBid = new int[m_roster->GetNumberCols()];
 	m_average = new double[m_roster->GetNumberCols()];
 	m_profit = new int[m_roster->GetNumberCols()];
-	m_value = new int[m_roster->GetNumberCols()];
+	m_value = new double[m_roster->GetNumberCols()];
 	m_amtPaid = new int[m_roster->GetNumberCols()];
 	for( i = 0; i < m_roster->GetNumberCols(); i++ )
 	{
@@ -110,7 +111,7 @@ CTeamsRoster::CTeamsRoster(wxWindow *parent, const CLeagueSettings &settings, co
 		m_roster->SetReadOnly( 1, i );
 		m_roster->SetCellValue( 2, i, wxString::Format( "%.3f", m_average[i] ) );
 		m_roster->SetReadOnly( 2, i );
-		m_value[i] = 0;
+		m_value[i] = 0.0;
 		m_amtPaid[i] = 0;
 		m_profit[i] = 0;
 		m_roster->SetReadOnly( 3, i );
@@ -214,7 +215,7 @@ void CTeamsRoster::UnAssignPlayer(const CPlayer &player)
 	m_roster->SetCellValue( 2, column, wxString::Format( "%.3f", m_average[column] ) );
 	m_value[column] -= player.GetValue();
 	m_amtPaid[column] -= player.GetAmountPaid();
-	m_profit[column] -= ( m_value[column] - m_amtPaid[column] );
+	m_profit[column] -= ( (int) m_value[column] - m_amtPaid[column] );
 	if( m_profit[column] != 0 )
 		m_roster->SetCellValue( 3, column, wxString::Format( "%d", m_profit[column] ) );
 	m_roster->AutoSize();
@@ -257,7 +258,7 @@ void CTeamsRoster::SetPlayer(const CPlayer &player, bool justCalculate)
 	m_average[col] = m_salary[col] / m_playersLeft[col];
 	m_value[col] += player.GetValue();
 	m_amtPaid[col] += player.GetAmountPaid();
-	m_profit[col] += ( m_value[col] - m_amtPaid[col] );
+	m_profit[col] += ( (int) m_value[col] - m_amtPaid[col] );
 	if( !justCalculate )
 		DisplayOwnerData( col );
 }

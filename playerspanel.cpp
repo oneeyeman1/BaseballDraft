@@ -8,6 +8,7 @@
 #endif
 
 #include <vector>
+#include <set>
 #include <map>
 #include <algorithm>
 #include "sqlite3.h"
@@ -39,6 +40,7 @@ CPlayersPanel::CPlayersPanel() : wxPanel()
 
 CPlayersPanel::CPlayersPanel(wxWindow *parent, const CLeagueData &data) : wxPanel( parent )
 {
+	m_oldSortingColumn = -1;
 	wxString menu = "FULL";
 	m_isResizing = false;
 	for( std::vector<wxString>::iterator it = data.m_settings->GetHitScoring().begin(); it < data.m_settings->GetHitScoring().end() ; it++ )
@@ -86,12 +88,7 @@ CPlayersPanel::CPlayersPanel(wxWindow *parent, const CLeagueData &data) : wxPane
 	m_edit = new wxButton( this, wxID_ANY, "Edit Columns" );
 	m_add = new wxButton( this, wxMENU_FILE_ADD_PLAYER, "Add Player" );
 	m_players = new wxGrid( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_STATIC );
-//	m_table = new CPlayersPanelGridTable( *m_data->m_players );
-//	m_players->SetTable( m_table, true, wxGrid::wxGridSelectRows );
-//	m_players->UseNativeColHeader();
 	m_players->HideRowLabels();
-//	FilterColumns();
-//	m_players->AutoSize();
 	set_properties();
 	do_layout();
 	m_filterC->Bind( wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, &CPlayersPanel::OnFilterHitters, this );
@@ -119,7 +116,6 @@ CPlayersPanel::CPlayersPanel(wxWindow *parent, const CLeagueData &data) : wxPane
 	m_allPlayers->Bind( wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, &CPlayersPanel::OnAllPlayers, this );
 	m_players->Bind( wxEVT_GRID_COL_AUTO_SIZE, &CPlayersPanel::OnResizingColumn, this );
 	m_players->SetRowMinimalAcceptableHeight( m_players->GetRowHeight( 0 ) );
-//	m_players->Bind( wxEVT_GRID_CELL_LEFT_DCLICK, &CPlayersPanel::OnDoubleClickCell, this );
 }
 
 CPlayersPanel::~CPlayersPanel(void)
@@ -174,11 +170,11 @@ void CPlayersPanel::set_properties()
 	m_players->SetColLabelValue( 10, "OBP" );
 	m_players->SetColLabelValue( 11, "SLG" );
 	m_players->SetColLabelValue( 12, "OPS" );
-	m_players->SetColLabelValue( 13, "bb" );
+	m_players->SetColLabelValue( 13, "BB" );
 	m_players->SetColFormatNumber( 13 );
-	m_players->SetColLabelValue( 14, "h" );
+	m_players->SetColLabelValue( 14, "H" );
 	m_players->SetColFormatNumber( 14 );
-	m_players->SetColLabelValue( 15, "Ks" );
+	m_players->SetColLabelValue( 15, "K" );
 	m_players->SetColFormatNumber( 15 );
 	m_players->SetColLabelValue( 16, "1B" );
 	m_players->SetColFormatNumber( 16 );
@@ -258,17 +254,16 @@ void CPlayersPanel::set_properties()
 	m_players->SetColLabelValue( 60, "Holds" );
 	m_players->SetColLabelValue( 61, "G" );
 	m_players->SetColLabelValue( 62, "R" );
-	m_players->SetColLabelValue( 63, "hr" );
+	m_players->SetColLabelValue( 63, "HR" );
 	m_players->SetColLabelValue( 64, "Notes" );
-	m_sort.m_sortType = m_sortColumn = SORT_BY_VALUE;
-	m_sort.m_forward = true;
-	std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
-	for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
-		m_data->m_players->at( i ).SetRange( i + 1 );
-	m_sorter = "BegValue";
+	m_sort.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+	m_sort.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
+	m_presorted = true;
 	int row = 0;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 	{
+		if( (*it).IsPlayerDeleted() )
+			continue;
 		wxString temp;
 		wxFont font = m_players->GetCellFont( row, 0 );
 		font.MakeBold();
@@ -291,31 +286,26 @@ void CPlayersPanel::set_properties()
 				(*it_hitters).first == "OBP" ||
 				(*it_hitters).first == "SLG" ||
 				(*it_hitters).first == "OPS" ||
-				(*it_hitters).first == "K/9" ||
-				(*it_hitters).first == "H/9" ||
-				(*it_hitters).first == "BB/9" ||
-				(*it_hitters).first == "K/BB" ||
-				(*it_hitters).first == "K-BB" ||
-				(*it_hitters).first == "Holds" ||
-				(*it_hitters).first == "G" ||
-				(*it_hitters).first == "R" ||
-				(*it_hitters).first == "hr" )
+				(*it_hitters).first == "W%" )
 			{
 				score = wxString::Format( "%.3f", (*it_hitters).second );
 			}
-			else if( (*it_hitters).first == "ERA" || (*it_hitters).first == "WHIP" || (*it_hitters).first == "K" )
+			else if( (*it_hitters).first == "ERA" ||
+					 (*it_hitters).first == "WHIP" ||
+					 (*it_hitters).first == "K/9" ||
+					 (*it_hitters).first == "H/9" ||
+					 (*it_hitters).first == "BB/9" ||
+					 (*it_hitters).first == "K/BB" )
 			{
 				score = wxString::Format( "%.2f", (*it_hitters).second );
 			}
-			else if( (*it_hitters).first == "W%" )
-				score = wxString::Format( "%.2f%%", (*it_hitters).second );
 			else if( (*it_hitters).first == "IP" )
 				score = wxString::Format( "%.1f", (*it_hitters).second );
 			else
-				score << (*it_hitters).second;
+				score << wxString::Format( "%d", (int)(*it_hitters).second );
 			if( score.StartsWith( "0." ) )
 				score = score.substr( 1 );
-			int col = FindColumnByLabel( (*it_hitters).first );
+			int col = FindColumnByLabel( (*it_hitters).first, (*it).IsHitter() );
 			m_players->SetCellValue( row, col, score );
 		}
 		m_players->SetCellValue( row, 31, wxString::Format( "$%.2f", (*it).GetValue() ) );
@@ -325,7 +315,7 @@ void CPlayersPanel::set_properties()
 			int paid = (*it).GetAmountPaid();
 			m_players->SetCellValue( row, 33, paid == 0 ? wxString() : wxString::Format( "$%d", paid ) );
 			double profit = (*it).GetValue() - (*it).GetAmountPaid();
-			m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%d", profit ) );
+			m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%d", (int) profit ) );
 			m_players->SetCellValue( row, 35, (*it).GetOwner() );
 		}
 		m_players->SetCellValue( row, 64, (*it).GetNotes() );
@@ -396,8 +386,8 @@ void CPlayersPanel::do_layout()
     sizer_3->Add( 5, 5, 0, wxEXPAND, 0 );
 
 	wxBoxSizer *sizer_6 = new wxBoxSizer( wxHORIZONTAL );
-	sizer_6->Add( m_players, 1, wxEXPAND, 0 );
-	sizer_3->Add( sizer_6, 1, wxEXPAND, 0 );
+	sizer_6->Add( m_players, 2, wxEXPAND, 0 );
+	sizer_3->Add( sizer_6, 2, wxEXPAND, 0 );
 //    sizer_3->Add( m_players, 1, wxEXPAND, 0 );
 
 
@@ -455,6 +445,8 @@ void CPlayersPanel::OnFilterHitters(wxCommandEvent &event)
 	int row = 0;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 	{
+		if( (*it).IsPlayerDeleted() )
+			continue;
 		std::vector<wxString> positions = (*it).GetPositions();
 		if( ( m_filterC->GetValue() && std::find( positions.begin(), positions.end(), "C" ) != positions.end() ) ||
 			( m_filter1B->GetValue() && std::find( positions.begin(), positions.end(), "1B" ) != positions.end() ) ||
@@ -517,6 +509,8 @@ void CPlayersPanel::OnFilterPitchers(wxCommandEvent &event)
 	m_players->BeginBatch();
 	for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
 	{
+		if( m_data->m_players->at( i ).IsPlayerDeleted() )
+			continue;
 		std::vector<wxString> positions = m_data->m_players->at( i ).GetPositions();
 		if( ( m_filterP->GetValue() && std::find( positions.begin(), positions.end(), "P" ) != positions.end() ) ||
 			( m_filterSP->GetValue() && std::find( positions.begin(), positions.end(), "SP" ) != positions.end() ) ||
@@ -536,6 +530,7 @@ void CPlayersPanel::OnFilterPitchers(wxCommandEvent &event)
 
 void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 {
+	bool isFirst = true;
 	m_players->BeginBatch();
 	int row;
 	if( addRow )
@@ -569,55 +564,55 @@ void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 	m_players->SetCellValue( row, 4, wxString::Format( "%d", player.GetAge() ) );
 	for( std::map<wxString,double>::iterator it_hitters = const_cast<CPlayer &>( player ).GetScoring().begin(); it_hitters != const_cast<CPlayer &>( player ).GetScoring().end(); it_hitters++ )
 	{
-		if( !player.IsHitter() )
+		if( !player.IsHitter() && isFirst )
 		{
 			for( int col = 5; col < 31; col++ )
 				m_players->SetCellValue( row, col, wxEmptyString );
 		}
-		else
+		else if( isFirst )
 		{
 			for( int col = 36; col < 64; col++ )
 				m_players->SetCellValue( row, col, wxEmptyString );
 		}
+		isFirst = false;
 		wxString score;
 		if( (*it_hitters).first == "AVG" ||
 			(*it_hitters).first == "OBP" ||
 			(*it_hitters).first == "SLG" ||
 			(*it_hitters).first == "OPS" ||
-			(*it_hitters).first == "K/9" ||
-			(*it_hitters).first == "H/9" ||
-			(*it_hitters).first == "BB/9" ||
-			(*it_hitters).first == "K/BB" ||
-			(*it_hitters).first == "K-BB" ||
-			(*it_hitters).first == "Holds" ||
-			(*it_hitters).first == "G" ||
-			(*it_hitters).first == "R" ||
-			(*it_hitters).first == "hr" )
+			(*it_hitters).first == "W%" )
 		{
 			score = wxString::Format( "%.3f", (*it_hitters).second );
 		}
-		else if( (*it_hitters).first == "ERA" || (*it_hitters).first == "WHIP" || (*it_hitters).first == "K" )
+		else if( (*it_hitters).first == "ERA" ||
+				 (*it_hitters).first == "WHIP" ||
+				 (*it_hitters).first == "K/9" ||
+				 (*it_hitters).first == "H/9" ||
+				 (*it_hitters).first == "BB/9" ||
+				 (*it_hitters).first == "K/BB" )
 		{
 			score = wxString::Format( "%.2f", (*it_hitters).second );
 		}
-		else if( (*it_hitters).first == "W%" )
-			score = wxString::Format( "%.2f%%", (*it_hitters).second );
 		else if( (*it_hitters).first == "IP" )
 			score = wxString::Format( "%.1f", (*it_hitters).second );
 		else
-			score << (*it_hitters).second;
+			score = wxString::Format( "%d", (int) (*it_hitters).second );
 		if( score.StartsWith( "0." ) )
 			score = score.substr( 1 );
-		int col = FindColumnByLabel( (*it_hitters).first );
+		int col = FindColumnByLabel( (*it_hitters).first, player.IsHitter() );
 		m_players->SetCellValue( row, col, score );
 	}
-	m_players->SetCellValue( row, 31, wxString::Format( "$%.2f", player.GetValue() ) );
-	m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", player.GetCurrentValue() ) );
+	double value = player.GetValue();
+	double currValue = player.GetCurrentValue();
+	m_players->SetCellValue( row, 31, wxString::Format( "$%.2f", value ) );
+	m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", floor( currValue * 100 + 0.5 ) / 100 ) );
 	if( player.IsPlayerDrafted() )
 	{
 		int paid = player.GetAmountPaid();
 		m_players->SetCellValue( row, 33, paid == 0 ? wxString() : wxString::Format( "$%d", paid ) );
 		m_players->SetCellValue( row, 35, const_cast<CPlayer &>( player ).GetOwner() );
+		double profit = player.GetValue() - player.GetAmountPaid();
+		m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%.2f", profit ) );
 	}
 	else
 	{
@@ -625,9 +620,6 @@ void CPlayersPanel::DisplayPlayer(const CPlayer &player, bool addRow)
 		m_players->SetCellValue( row, 34, wxEmptyString );
 		m_players->SetCellValue( row, 35, wxEmptyString );
 	}
-	double diff = player.GetValue() - player.IsPlayerDrafted();
-	double profit = diff ? (double) player.GetAmountPaid() : player.GetCurrentValue();
-	m_players->SetCellValue( row, 34, profit == 0 ? wxString() : wxString::Format( "$%.2f", profit ) );
 	m_players->SetCellValue( row, 64, const_cast<CPlayer &>( player ).GetNotes() );
 	for( int i = 0; i < 64; i++ )
 		m_players->SetReadOnly( row, i, true );
@@ -669,6 +661,8 @@ void CPlayersPanel::OnFilterAllHitters(wxCommandEvent &WXUNUSED(event))
 	m_players->BeginBatch();
 	for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
 	{
+		if( m_data->m_players->at( i ).IsPlayerDeleted() )
+			continue;
 		if( !m_data->m_players->at( i ).IsHitter() )
 			m_players->HideRow( i );
 		else
@@ -705,6 +699,8 @@ void CPlayersPanel::OnFilterAllPitchers(wxCommandEvent &WXUNUSED(event))
 	m_players->BeginBatch();
 	for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
 	{
+		if( m_data->m_players->at( i ).IsPlayerDeleted() )
+			continue;
 		if( m_data->m_players->at( i ).IsHitter() )
 			m_players->HideRow( i );
 		else
@@ -748,6 +744,8 @@ void CPlayersPanel::OnPlayersFilter(wxCommandEvent &WXUNUSED(event))
 	int row = 0;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 	{
+		if( (*it).IsPlayerDeleted() )
+			continue;
 		if( ( m_filterType == 0 || m_filterType == 2 ) && !(*it).IsPlayerDrafted() )
 			m_players->SetRowSize( row, wxGRID_AUTOSIZE );
 		else if( ( m_filterType == 1 || m_filterType == 2 ) && (*it).IsPlayerDrafted() )
@@ -776,6 +774,19 @@ void CPlayersPanel::ColumnsChanged(const std::map<wxString,bool> &hitterColumns,
 
 void CPlayersPanel::OnSortingData(wxGridEvent &event)
 {
+	std::vector<SortObject>::iterator it = m_sort.m_type.end();
+	int col = event.GetCol();
+	if( col == 32 && m_presorted )
+	{
+		m_presorted = false;
+		m_oldSortingColumn = 31;
+		return;
+	}
+	if( m_presorted )
+	{
+		m_presorted = false;
+		m_sort.m_type.clear();
+	}
 	if( m_isResizing )
 	{
 		m_isResizing = false;
@@ -783,333 +794,480 @@ void CPlayersPanel::OnSortingData(wxGridEvent &event)
 	}
 	wxBeginBusyCursor();
 	wxString label = m_players->GetColLabelValue( event.GetCol() );
-	if( label == m_sorter )
-		m_sort.m_forward = !m_sort.m_forward;
+	if( !event.ControlDown() && m_oldSortingColumn != col )
+		m_sort.m_type.clear();
+	if( m_oldSortingColumn == col )
+		if( m_sort.m_type.size() == 1 )
+			m_sort.m_type.at( 0 ).m_direction = !m_sort.m_type.at( 0 ).m_direction;
+		else
+			m_sort.m_type.at( m_sort.m_type.size() - 2 ).m_direction = !m_sort.m_type.at( m_sort.m_type.size() - 2 ).m_direction;
 	else
 	{
-		m_sorter = label;
-		m_sort.m_forward = true;
-		if( label == "#" )
+		if( label == "Rank" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_RANGE;
-			m_sorter = "#";
+			if( m_sort.m_type.size() == 0 )
+			{
+				m_sort.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
+			}
+			else
+				return;
 		}
 		else if( label == "Player" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_NAME;
-			m_sorter = "Player";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_NAME, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_NAME, true ) );
 		}
 		else if( label == "Team" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_TEAM;
-			m_sorter = "Team";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_TEAM, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_TEAM, true ) );
 		}
 		else if( label == "Position" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_POSITION;
-			m_sorter = "Position";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_POSITION, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_POSITION, true ) );
 		}
 		else if( label == "Notes" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_NOTES;
-			m_sorter = "Notes";
-		}
-		else if( label == "Ks" )
-		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_KHITTERS;
-			m_sorter = "Ks";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_NOTES, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_NOTES, true ) );
 		}
 		else if( label == "K" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_KPITCHERS;
-			m_sorter = "K";
-		}
-		else if( label == "h" )
-		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HHITTERS;
-			m_sorter = "h";
+			if( event.GetCol() == 15 )
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_KHITTERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_KHITTERS, true ) );
+			}
+			else
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_KPITCHERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_KPITCHERS, true ) );
+			}
 		}
 		else if( label == "H" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HPITCHERS;
-			m_sorter = "H";
+			if( event.GetCol() == 14 )
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_HHITTERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HHITTERS, true ) );
+			}
+			else
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_HPITCHERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HPITCHERS, true ) );
+			}
 		}
 		else if( label == "Runs" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_RUNSHITTERS;
-			m_sorter = "Runs";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_RUNSHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_RUNSHITTERS, true ) );
 		}
 		else if( label == "R" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_RPITCHERS;
-			m_sorter = "R";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_RPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_RPITCHERS, true ) );
 		}
 		else if( label == "HR" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HRHITTERS;
-			m_sorter = "HR";
-		}
-		else if( label == "hr" )
-		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HRPITCHERS;
-			m_sorter = "hr";
-		}
-		else if( label == "bb" )
-		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_BBHITTERS;
-			m_sorter = "bb";
+			if( event.GetCol() == 6 )
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_HRHITTERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HRHITTERS, true ) );
+			}
+			else
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_HRPITCHERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HRPITCHERS, true ) );
+			}
 		}
 		else if( label == "BB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_BBPITCHERS;
-			m_sorter = "BB";
+			if( event.GetCol() == 13 )
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_BBHITTERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_BBHITTERS, true ) );
+			}
+			else
+			{
+				if( m_sort.m_type.size() == 0 )
+					m_sort.m_type.push_back( SortObject( SORT_BY_BBPITCHERS, true ) );
+				else
+					m_sort.m_type.insert( it - 1, SortObject( SORT_BY_BBPITCHERS, true ) );
+			}
 		}
 		else if( label == "AVG" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_AVGHITTERS;
-			m_sorter = "AVG";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_AVGHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_AVGHITTERS, true ) );
 		}
 		else if( label == "OBP" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_OBPHITTERS;
-			m_sorter = "OBP";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_OBPHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_OBPHITTERS, true ) );
 		}
 		else if( label == "SLG" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SLGHITTERS;
-			m_sorter = "SLG";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SLGHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SLGHITTERS, true ) );
 		}
 		else if( label == "OPS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_OPSHITTERS;
-			m_sorter = "OPS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_OPSHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_OPSHITTERS, true ) );
 		}
 		else if( label == "AB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_ABHITTERS;
-			m_sorter = "AB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_ABHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_ABHITTERS, true ) );
 		}
 		else if( label == "1B" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_1BHITTERS;
-			m_sorter = "1B";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_1BHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_1BHITTERS, true ) );
 		}
 		else if( label == "2B" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_2BHITTERS;
-			m_sorter = "2B";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_2BHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_2BHITTERS, true ) );
 		}
 		else if( label == "3B" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_3BHITTERS;
-			m_sorter = "3B";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_3BHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_3BHITTERS, true ) );
 		}
 		else if( label == "TB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_TBHITTERS;
-			m_sorter = "TB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_TBHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_TBHITTERS, true ) );
 		}
 		else if( label == "RBI" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_RBIHITTERS;
-			m_sorter = "RBI";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_RBIHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_RBIHITTERS, true ) );
 		}
 		else if( label == "SB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SBHITTERS;
-			m_sorter = "SB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SBHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SBHITTERS, true ) );
 		}
 		else if( label == "2B+3B+HR" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_2B3BHRHITTERS;
-			m_sorter = "2B+3B+HR";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_2B3BHRHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_2B3BHRHITTERS, true ) );
 		}
 		else if( label == "2B+3B" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_2B3BHITTERS;
-			m_sorter = "2B+3B";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_2B3BHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_2B3BHITTERS, true ) );
 		}
 		else if( label == "SB-CS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SBCSHITTERS;
-			m_sorter = "SB-CS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SBCSHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SBCSHITTERS, true ) );
 		}
 		else if( label == "CS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_CSHITTERS;
-			m_sorter = "CS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_CSHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_CSHITTERS, true ) );
 		}
 		else if( label == "R+RBI-HR" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_RRBIHRHITTERS;
-			m_sorter = "R+RBI-HR";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_RRBIHRHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_RRBIHRHITTERS, true ) );
 		}
 		else if( label == "H+BB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HBBHITTERS;
-			m_sorter = "H+BB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_HBBHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HBBHITTERS, true ) );
 		}
 		else if( label == "TB+BB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_TBBBHITTERS;
-			m_sorter = "TB+BB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_TBBBHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_TBBBHITTERS, true ) );
 		}
 		else if( label == "HBP" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HBPHITTERS;
-			m_sorter = "HBP";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_HBPHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HBPHITTERS, true ) );
 		}
 		else if( label == "GDP" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_GDPHITTERS;
-			m_sorter = "GDP";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_GDPHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_GDPHITTERS, true ) );
 		}
 		else if( label == "SF" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SFHITTERS;
-			m_sorter = "SF";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SFHITTERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SFHITTERS, true ) );
 		}
 		else if( label == "BegValue" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_VALUE;
-			m_sorter = "BegValue";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_VALUE, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_VALUE, true ) );
 		}
 		else if( label == "CurrValue" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_CURRVALUE;
-			m_sorter = "CurrValue";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_CURRVALUE, true ) );
 		}
 		else if( label == "AmtPaid" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_AMTPAID;
-			m_sorter = "AmtPaid";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_AMTPAID, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_AMTPAID, true ) );
 		}
 		else if( label == "Profit" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_PROFIT;
-			m_sorter = "Profit";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_PROFIT, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_PROFIT, true ) );
 		}
 		else if( label == "Owner" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_OWNER;
-			m_sorter = "Owner";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_OWNER, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_OWNER, true ) );
 		}
 		else if( label == "Wins" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_WPITCHERS;
-			m_sorter = "Wins";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_WPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it -1, SortObject( SORT_BY_WPITCHERS, true ) );
 		}
 		else if( label == "Saves" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SPITCHERS;
-			m_sorter = "Saves";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SPITCHERS, true ) );
 		}
 		else if( label == "ERA" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_ERAPITCHERS;
-			m_sorter = "ERA";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_ERAPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_ERAPITCHERS, true ) );
 		}
 		else if( label == "WHIP" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_WHIPPITCHERS;
-			m_sorter = "WHIP";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_WHIPPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_WHIPPITCHERS, true ) );
 		}
 		else if( label == "IP" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_IPPITCHERS;
-			m_sorter = "IP";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_IPPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_IPPITCHERS, true ) );
 		}
 		else if( label == "L" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_LPITCHERS;
-			m_sorter = "L";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_LPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_LPITCHERS, true ) );
 		}
 		else if( label == "ER" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_ERPITCHERS;
-			m_sorter = "ER";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_ERPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_ERPITCHERS, true ) );
 		}
 		else if( label == "CG" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_CGPITCHERS;
-			m_sorter = "CG";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_CGPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_CGPITCHERS, true ) );
 		}
 		else if( label == "W-L" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_WLPITCHERS;
-			m_sorter = "W-L";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_WLPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_WLPITCHERS, true ) );
 		}
 		else if( label == "QS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_QSPITCHERS;
-			m_sorter = "QS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_QSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_QSPITCHERS, true ) );
 		}
 		else if( label == "Shoutouts" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SHUTOUTPITCHERS;
-			m_sorter = "Shoutouts";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SHUTOUTPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SHUTOUTPITCHERS, true ) );
 		}
 		else if( label == "BS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_BSPITCHERS;
-			m_sorter = "BS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_BSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_BSPITCHERS, true ) );
 		}
 		else if( label == "S-BS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SBSPITCHERS;
-			m_sorter = "S-BS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SBSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SBSPITCHERS, true ) );
 		}
 		else if( label == "S+Holds" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SHOLDSPITCHERS;
-			m_sorter = "S+Holds";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SHOLDSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SHOLDSPITCHERS, true ) );
 		}
 		else if( label == "S+Holds-BS" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_SHOLDSBSPITCHERS;
-			m_sorter = "S+Holds-BS";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_SHOLDSBSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_SHOLDSBSPITCHERS, true ) );
 		}
 		else if( label == "K/9" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_K9PITCHERS;
-			m_sorter = "K/9";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_K9PITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it -1, SortObject( SORT_BY_K9PITCHERS, true ) );
 		}
 		else if( label == "H/9" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_H9PITCHERS;
-			m_sorter = "H/9";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_H9PITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_H9PITCHERS, true ) );
 		}
 		else if( label == "BB/9" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_BB9PITCHERS;
-			m_sorter = "BB/9";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_BB9PITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_BB9PITCHERS, true ) );
 		}
 		else if( label == "K/BB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_KBBPITCHERS;
-			m_sorter = "K/BB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_KBBPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_KBBPITCHERS, true ) );
 		}
 		else if( label == "K-BB" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_KMINBBPITCHERS;
-			m_sorter = "K-BB";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_KMINBBPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_KMINBBPITCHERS, true ) );
 		}
 		else if( label == "W%" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_W100PITCHERS;
-			m_sorter = "W%";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_W100PITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_W100PITCHERS, true ) );
 		}
 		else if( label == "Holds" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_HOLDSPITCHERS;
-			m_sorter = "Holds";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_HOLDSPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_HOLDSPITCHERS, true ) );
 		}
 		else if( label == "G" )
 		{
-			m_sort.m_sortType = m_sortColumn = SORT_BY_GPITCHERS;
-			m_sorter = "G";
+			if( m_sort.m_type.size() == 0 )
+				m_sort.m_type.push_back( SortObject( SORT_BY_GPITCHERS, true ) );
+			else
+				m_sort.m_type.insert( it - 1, SortObject( SORT_BY_GPITCHERS, true ) );
 		}
 	}
+	if( m_sort.m_type.at( m_sort.m_type.size() - 1 ).m_type != SORT_BY_RANGE )
+		m_sort.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 	std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
 	m_players->BeginBatch();
 	m_row = 0;
@@ -1118,6 +1276,8 @@ void CPlayersPanel::OnSortingData(wxGridEvent &event)
 	FilterColumns( true, true );
 	Layout();
 	m_players->EndBatch();
+	m_oldSortingColumn = col;
+	m_row = 0;
 	wxEndBusyCursor();
 }
 
@@ -1201,132 +1361,202 @@ void CPlayersPanel::PositionPlayerFilter(const CPlayer &player, bool addRow)
 	DisplayPlayer( player, addRow );
 }
 
+/*
+If drafting payer:
+diff - inflation ratio
+isEdit - true
+player - NULL
+playerDropped - ""
+val - 0.0
+*/
 void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPlayer *player, const wxString &playerDropped, double val)
 {
 	int row = 0;
 	if( !player && isEdit )
 	{
+		double lessThanOneDollar = 0.0;
+		int countLessThanOneDollar = 0;
 		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 		{
-			if( !(*it).IsPlayerDrafted() )
+			if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
+				continue;
+			(*it).SetCurrentValue( diff * (*it).GetValue() );
+			double currValue = (*it).GetCurrentValue();
+			if( currValue > 0 && currValue < 1 )
 			{
-				(*it).SetCurrentValue( diff * (*it).GetValue() );
-				m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", (double) (*it).GetCurrentValue() ) );
+				lessThanOneDollar += currValue;
+				countLessThanOneDollar++;
 			}
-			row++;
 		}
+		if( countLessThanOneDollar > 0 )
+		{
+			double newdiff = lessThanOneDollar / (double) ( dynamic_cast<CFrame *>(GetParent()->GetParent())->GetAvailablePlayers() - countLessThanOneDollar - 1 );
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			{
+				if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() || (*it).GetValue() == 0 )
+					continue;
+				if( (*it).GetCurrentValue() > 1 )
+					(*it).SetCurrentValue( (*it).GetCurrentValue() - newdiff );
+				if( (*it).GetCurrentValue() < 1 )
+					(*it).SetCurrentValue( 1.0 );
+			}
+		}
+		PlayerSorter sorter;
+		sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+		sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
+		std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
+		int range = 1;
+		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			(*it).SetRange( range++ );
+		std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
+		SetCurrentPlayerRow( 0 );
+		std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
+		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++, row++ )
+			DisplayPlayer( (*it), false );
 		return;
 	}
 	if( isEdit )
 	{
-		double lessMinValue = 0;
-		int lessMinValueCount = 0;
 		SetCurrentPlayerRow( 0 );
 		std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
 		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++, row++ )
-		{
 			DisplayPlayer( (*it), false );
-/*			if( (*it).GetName() == const_cast<CPlayer *>( player )->GetName() )
-				(*it).SetValue( val );
-			else if( (*it).GetName() == playerDropped )
-			{
-				(*it).SetValue( 0 );
-				(*it).SetCurrentValue( 0.0 );
-			}
-			else if( !(*it).IsPlayerDrafted() && (*it).GetValue() != 0 )
-			{
-				(*it).SetCurrentValue( diff + (*it).GetCurrentValue() );
-				(*it).SetValue( diff + (*it).GetValue() );
-				if( (*it).GetValue() < 1 )
-				{
-					lessMinValue += (*it).GetCurrentValue();
-					lessMinValueCount++;
-				}
-				m_players->SetCellValue( row, 31, wxString::Format( "$%d", (*it).GetValue() ) );
-				m_players->SetCellValue( row, 32, wxString::Format( "$%.2f", (double) (*it).GetCurrentValue() ) );
-			}*/
-		}
 	}
 	else if( !isEdit )
 	{
-		CPlayer newPlayer( const_cast<CPlayer *>( player )->GetRange(), const_cast<CPlayer *>( player )->GetName(), const_cast<CPlayer *>( player )->GetPositions(), player->GetAge(), player->GetValue(), const_cast<CPlayer *>( player )->GetTeam(), const_cast<CPlayer *>( player )->GetAbbeviatedTeamName(), const_cast<CPlayer *>( player )->GetScoring(), player->IsHitter(), player->GetCurrentValue(), const_cast<CPlayer *>( player )->GetNotes(), player->GetValue() );
+		CPlayer newPlayer( const_cast<CPlayer *>( player )->GetPlayerId(), const_cast<CPlayer *>( player )->GetName(), const_cast<CPlayer *>( player )->GetPositions(), player->GetAge(), player->GetValue(), const_cast<CPlayer *>( player )->GetTeam(), const_cast<CPlayer *>( player )->GetAbbeviatedTeamName(), const_cast<CPlayer *>( player )->GetScoring(), player->IsHitter(), player->GetCurrentValue(), const_cast<CPlayer *>( player )->GetNotes(), player->GetValue(), player->IsPlayerDeleted() );
+/*		newPlayer.SetRange( const_cast<CPlayer *>( player )->GetRange() );
+		newPlayer.SetOriginalRange( const_cast<CPlayer *>( player )->GetOriginalRange() );*/
 		newPlayer.SetNewPlayer( true );
-		m_data->m_players->push_back( newPlayer );
-		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+/*		int newPlayerRank = const_cast<CPlayer *>( player )->GetRange();
+		m_data->m_players->push_back( newPlayer );*/
+		int changedRank;
+		if( newPlayer.GetValue() == 0 )
 		{
-			if( !playerDropped.IsEmpty() && (*it).GetName() == playerDropped )
+			int pos = m_data->m_players->size() + 1;
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 			{
-				(*it).SetCurrentValue( 0.0 );
-				(*it).SetValue( 0 );
+				if( (*it).IsPlayerDeleted() )
+					pos--;
 			}
-			if( (*it).GetName() == const_cast<CPlayer *>( player )->GetName() )
-				continue;
-			if( !(*it).IsPlayerDrafted() && val > 1 && (*it).GetCurrentValue() > 0 )
-				(*it).SetCurrentValue( (*it).GetCurrentValue() + diff );
-		}
-		PlayerSorter sorter;
-		sorter.m_sortType = SORT_BY_VALUE;
-		sorter.m_forward = true;
-		std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
-		for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
-			m_data->m_players->at( i ).SetRange( i + 1 );
-		sorter.m_sortType = GetSortingType();
-		std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
-		m_players->BeginBatch();
-		m_players->AppendRows();
-		int row = 0;
-		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
-		{
-			GeneralPlayerFilter( (*it), false );
-			if( (*it).IsPlayerDrafted() )
-				m_players->HideRow( row );
-			row++;
-		}
-		m_players->EndBatch();
-		GetCompleter().GetPlayers().push_back( newPlayer );
-		sorter.m_sortType = SORT_BY_NAME;
-		sorter.m_forward = true;
-		std::sort( GetCompleter().GetPlayers().begin(), GetCompleter().GetPlayers().end(), sorter );
-	}
-/*	int numRows = m_players->GetNumberRows();
-	wxArrayInt selectedRow = m_players->GetSelectedRows();
-//	int changedRow;
-	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
-	{
-		if( !(*it).IsPlayerDrafted() && &(*it) != player )
-		{
-			if( (*it).GetCurrentValue() > 0 )
-			{
-				double currValue = (*it).GetCurrentValue();
-				currValue += diff;
-				(*it).SetCurrentValue( currValue );
-				if( row >= numRows )
-					continue;
-				if( col > -1 && ( m_players->GetCellValue( row, 0 ) == (*it).GetName() && m_players->GetCellValue( row, 1 ) == (*it).GetAbbeviatedTeamName() ) )
-				{
-					m_players->SetCellValue( row, col, wxString::Format( "$%.2f", currValue ) );
-					row++;
-				}
-			}
-			else
-				row++;
+			changedRank = pos;
+			newPlayer.SetRange( changedRank );
+			newPlayer.SetOriginalRange( changedRank );
+			int newPlayerRank = const_cast<CPlayer *>( player )->GetRange();
+			m_data->m_players->push_back( newPlayer );
+			m_players->BeginBatch();
+			m_players->AppendRows();
+			m_row = m_players->GetNumberRows() - 1;
+			DisplayPlayer( newPlayer, false );
+			m_players->MakeCellVisible( m_row - 2, 0 );
+			m_players->SelectRow( m_row - 1 );
+			m_players->EndBatch();
+			m_row = 0;
 		}
 		else
-			row++;
+		{
+			double amount = 0.0;
+			int counter = 0;
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			{
+				int playerRange = (*it).GetRange();
+				if( (*it).IsPlayerDeleted() )
+					continue;
+				if( !playerDropped.IsEmpty() && (*it).GetName() == playerDropped )
+				{
+					(*it).SetCurrentValue( 0.0 );
+					(*it).SetValue( 0 );
+				}
+//				if( (*it).GetName() == const_cast<CPlayer *>( player )->GetName() && playerRange == newPlayerRank )
+//					continue;
+				if( !(*it).IsPlayerDrafted() && val > 1 && (*it).GetCurrentValue() > 0 )
+				{
+					(*it).SetCurrentValue( (*it).GetCurrentValue() + diff );
+					double currValue = (*it).GetCurrentValue();
+					if( currValue < 1.0 )
+					{
+						amount += ( 1 - currValue );
+						counter++;
+					}
+				}
+			}
+			double newdiff = amount / (double) ( dynamic_cast<CFrame *>(GetParent()->GetParent())->GetAvailablePlayers() - counter - 1 );
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			{
+				if( (*it).IsPlayerDeleted() || (*it).GetValue() == 0 )
+					continue;
+				if( (*it).GetCurrentValue() > 1 && ( (*it).GetName() != const_cast<CPlayer *>( player )->GetName() && ( (*it).GetAge() != player->GetAge() ) ) )
+					(*it).SetCurrentValue( (*it).GetCurrentValue() - newdiff );
+				if( (*it).GetCurrentValue() < 1 )
+					(*it).SetCurrentValue( 1.0 );
+			}
+			bool found = false;
+			for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend() && !found; it++ )
+			{
+				if( (*it).IsPlayerDeleted() )
+					continue;
+				if( (*it).GetCurrentValue() == val )
+				{
+					changedRank = (*it).GetRange() + 1;
+					found = true;
+				}
+				if( (*it).GetCurrentValue() > val )
+				{
+					changedRank = (*it).GetRange() + 1;
+					found = true;
+				}
+			}
+			newPlayer.SetRange( changedRank );
+			newPlayer.SetOriginalRange( changedRank );
+			int currentRank = m_data->m_players->size() + 1/*, changedRank = dlg.GetChangedRank()*/;
+			if( currentRank > changedRank )
+			{
+				for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+				{
+					if( (*it).IsPlayerDeleted() )
+					{
+						currentRank--;
+						continue;
+					}
+					int range = (*it).GetRange();
+					if( range >= changedRank && range < currentRank )
+						(*it).SetRange( range + 1 );
+				}
+			}
+			m_data->m_players->push_back( newPlayer );
+			found = false;
+			std::sort( m_data->m_players->begin(), m_data->m_players->end(), m_sort );
+			m_players->BeginBatch();
+			m_players->AppendRows();
+			int row = 0;
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			{
+				if( (*it).IsPlayerDeleted() )
+					continue;
+				GeneralPlayerFilter( (*it), false );
+				if( (*it).IsPlayerDrafted() )
+					m_players->HideRow( row );
+				row++;
+			}
+			found = false;
+			int count = 0;
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
+			{
+				if( (*it).IsNewPlayer() && !(*it).IsPlayerDeleted() && (*it).GetName() == const_cast<CPlayer *>( player )->GetName() && (*it).GetAge() == player->GetAge() && (*it).GetTeam() == const_cast<CPlayer *>( player )->GetTeam() )
+					found = true;
+				else
+					count++;
+			}
+			m_players->MakeCellVisible( count, 0 );
+			m_players->SelectRow( count );
+			m_row = 0;
+			m_players->EndBatch();
+		}
+		PlayerSorter sorter;
+		GetCompleter().GetPlayers().push_back( newPlayer );
+		sorter.m_type.push_back( SortObject( SORT_BY_NAME, true ) );
+		std::sort( GetCompleter().GetPlayers().begin(), GetCompleter().GetPlayers().end(), sorter );
 	}
-	if( !isEdit )
-	{
-		m_players->InsertRows();
-		m_row = 0;
-	}
-	else
-		m_row = selectedRow.Item( 0 );
-	GeneralPlayerFilter( *player, false );*/
-}
-
-int CPlayersPanel::GetSortingType()
-{
-	return m_sortColumn;
 }
 
 void CPlayersPanel::OnNotesChanged(wxGridEvent &event)
@@ -1379,6 +1609,8 @@ void CPlayersPanel::OnAllPlayers(wxCommandEvent &WXUNUSED(event))
 		m_players->BeginBatch();
 		for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
 		{
+			if( m_data->m_players->at( i ).IsPlayerDeleted() )
+				continue;
 			m_players->SetRowSize( i, wxGRID_AUTOSIZE );
 			m_players->AutoSizeRow( i );
 		}
@@ -1501,11 +1733,11 @@ void CPlayersPanel::FilterColumns(bool displayHitters, bool displayPitchers)
 	}
 }
 
-int CPlayersPanel::FindColumnByLabel(const wxString &label)
+int CPlayersPanel::FindColumnByLabel(const wxString &label, bool isHitter)
 {
-	int result = wxNOT_FOUND;
+	int result = wxNOT_FOUND, startColumn = isHitter ? 5 : 36, endColumn = isHitter ? 31 : 64;
 	bool found = false;
-	for( int i = 0; i < m_players->GetNumberCols() && !found; i++ )
+	for( int i = startColumn; i < endColumn && !found; i++ )
 	{
 		if( m_players->GetColLabelValue( i ) == label )
 		{
@@ -1592,4 +1824,30 @@ void CPlayersPanel::PerformDraft(const CPlayer &player, double inflation, const 
 void CPlayersPanel::SetCurrentPlayerRow(int row)
 {
 	m_row = row;
+}
+
+void CPlayersPanel::DeletePlayer(const CPlayer &player)
+{
+	int deletedRank = const_cast<CPlayer &>( player ).GetRange();
+	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+	{
+		if( (*it).GetRange() == deletedRank )
+			(*it).DeletePlayer( true );
+		else if( (*it).GetRange() > deletedRank )
+			(*it).SetRange( (*it).GetRange() - 1 );
+	}
+	m_players->BeginBatch();
+	for( int i = 0; i < m_players->GetNumberRows(); i++ )
+	{
+		int rank = wxAtoi( m_players->GetCellValue( i, 0 ) );
+		if( rank == deletedRank )
+			m_players->DeleteRows( i );
+	}
+	for( int i = 0; i < m_players->GetNumberRows(); i++ )
+	{
+		int rank = wxAtoi( m_players->GetCellValue( i, 0 ) );
+		if( rank > deletedRank )
+			m_players->SetCellValue( i, 0, wxString::Format( "%d", rank - 1 ) );
+	}
+	m_players->EndBatch();
 }

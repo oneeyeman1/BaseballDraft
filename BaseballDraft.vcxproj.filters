@@ -19,10 +19,13 @@
     <None Include="small.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="icon1.ico">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="BaseballDraft.ico">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="icon1.ico">
+    <None Include="..\..\..\wxWidgets-2.9.5\samples\sample.ico">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
@@ -37,9 +40,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="frame.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="startdialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="db.h">
@@ -126,11 +126,11 @@
     <ClInclude Include="playerdropped.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mytipdialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="playerspanelgrid.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="startdialog.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -222,9 +222,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="playerdropped.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mytipdialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="playerspanelgrid.cpp">

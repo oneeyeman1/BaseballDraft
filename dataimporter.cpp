@@ -84,8 +84,8 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 	wxXmlNode *stringsRoot = NULL, *root = NULL;
 	std::vector<wxString> position;
 	wxString name, team, positions;
-	int age = 0, value = 0;
-	double avg_score = 0.0, obp_score = 0.0, slg_score = 0.0, ops_score = 0.0, ab_score = 0.0, r_score = 0.0, h_score = 0.0, score_1b = 0.0, score_2b = 0.0, score_3b = 0.0, hr_score = 0.0, tb_score = 0.0, rbi_score = 0.0, bb_score = 0.0, k_score = 0.0, hbp_score = 0.0, sf_score = 0.0, sb_score = 0.0, cs_score = 0.0, gdp_score = 0.0;
+	int age = 0, rank = 0;
+	double avg_score = 0.0, value = 0.0, obp_score = 0.0, slg_score = 0.0, ops_score = 0.0, ab_score = 0.0, r_score = 0.0, h_score = 0.0, score_1b = 0.0, score_2b = 0.0, score_3b = 0.0, hr_score = 0.0, tb_score = 0.0, rbi_score = 0.0, bb_score = 0.0, k_score = 0.0, hbp_score = 0.0, sf_score = 0.0, sb_score = 0.0, cs_score = 0.0, gdp_score = 0.0;
 	double w_score = 0.0, l_score = 0.0, era_score = 0.0, whip_score = 0.0, g_score = 0.0, gs_score = 0.0, wpercent_score = 0.0, ip_score = 0.0, er_score = 0.0, cg_score = 0.0, sho_score = 0.0, s_score = 0.0, hld_score = 0.0, bs_score = 0.0;
 	if( ( it = m_catalog.find( wxZipEntry::GetInternalName( "xl/sharedStrings.xml" ) ) ) != m_catalog.end() )
 	{
@@ -133,7 +133,11 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 						wxXmlNode *cell = row->GetChildren();
 						while( cell )
 						{
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'A' && ( cell->GetAttribute( "r" ).GetChar( 1 ) >= '0' && cell->GetAttribute( "r" ).GetChar( 1 ) <= '9' ) )
+							if( !cell->GetChildren() )
+								break;
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'A' )
+								rank = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'B' && ( cell->GetAttribute( "r" ).GetChar( 1 ) >= '0' && cell->GetAttribute( "r" ).GetChar( 1 ) <= '9' ) )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -143,7 +147,7 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								name = stringsRoot->GetChildren()->GetChildren()->GetContent();
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r").GetChar( 0 ) == 'B' )
+							if( cell->GetAttribute( "r").GetChar( 0 ) == 'C' )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -151,9 +155,9 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								team = stringsRoot->GetChildren()->GetChildren()->GetContent();
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'C' )
-								age = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'D' )
+								age = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'E' )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -162,79 +166,79 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								ParsePositions( positions, position );
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'E' )
-								avg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'F' )
-								obp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								avg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'G' )
-								slg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								obp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'H' )
-								ops_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								slg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'I' )
-								ab_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								ops_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'J' )
-								r_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								ab_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'K' )
-								h_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								r_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'L' )
-								score_1b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								h_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'M' )
-								score_2b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								score_1b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'N' )
-								score_3b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								score_2b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'O' )
-								hr_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								score_3b = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'P' )
-								tb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								hr_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'Q' )
-								rbi_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								tb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'R' )
-								bb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								rbi_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'S' )
-								k_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								bb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'T' )
-								hbp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								k_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'U' )
-								sf_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								hbp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'V' )
-								sb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								sf_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'W' )
-								cs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								sb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'X' )
-								gdp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								cs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'Y' )
+								gdp_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'Z' )
 								value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							cell = cell->GetNext();
 						}
-						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"1\", %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
+						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew, rank) VALUES( NULL, \"%s\", \"1\", %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\", %d );", name, age, value, team, (double) value, rank ) );
 						for( size_t i = 0; i < position.size(); i++ )
-							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( NULL, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"AVG\"), %.3f );", avg_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"HR\"), %.3f);", hr_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"Runs\"), %.3f);", r_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"RBI\"), %.3f);", rbi_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"SB\"), %.3f);", sb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"OBP\"), %.3f );", obp_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"SLG\"), %.3f );", slg_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"OPS\"), %.3f );", ops_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"BB\"), %.3f);", bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"H\"), %.3f);", h_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"K\"), %.3f);", k_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"1B\"), %.3f);", score_1b ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"2B\"), %.3f);", score_2b ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"3B\"), %.3f);", score_3b ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"TB\"), %.3f);", tb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"2B+3B+HR\"), %.3f);", score_2b + score_3b + hr_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"2B+3B\"), %.3f);", score_2b + score_3b ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"SB-CS\"), %.3f);", sb_score - cs_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"CS\"), %.3f);", cs_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"R+RBI-HR\"), %.3f);", r_score + rbi_score - hr_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"H+BB\"), %.3f);", h_score + bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"TB+BB\"), %.3f);", tb_score + bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"AB\"), %.3f );", ab_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"HBP\"), %.3f);", hbp_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"SF\"), %.3f);", sf_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( NULL, (SELECT scoreid FROM scorehits WHERE scorename = \"GDP\"), %.3f);", gdp_score ) );
+							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( ?, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"AVG\"), %.3f );", avg_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"HR\"), %.3f);", hr_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"Runs\"), %.3f);", r_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"RBI\"), %.3f);", rbi_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"SB\"), %.3f);", sb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"OBP\"), %.3f );", obp_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"SLG\"), %.3f );", slg_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"OPS\"), %.3f );", ops_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"BB\"), %.3f);", bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"H\"), %.3f);", h_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"K\"), %.3f);", k_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"1B\"), %.3f);", score_1b ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"2B\"), %.3f);", score_2b ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"3B\"), %.3f);", score_3b ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"TB\"), %.3f);", tb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"2B+3B+HR\"), %.3f);", score_2b + score_3b + hr_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"2B+3B\"), %.3f);", score_2b + score_3b ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"SB-CS\"), %.3f);", sb_score - cs_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"CS\"), %.3f);", cs_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"R+RBI-HR\"), %.3f);", r_score + rbi_score - hr_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"H+BB\"), %.3f);", h_score + bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"TB+BB\"), %.3f);", tb_score + bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"AB\"), %.3f );", ab_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"HBP\"), %.3f);", hbp_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"SF\"), %.3f);", sf_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorehits VALUES( ?, (SELECT scoreid FROM scorehits WHERE scorename = \"GDP\"), %.3f);", gdp_score ) );
 						hitters.push_back( queries );
 						position.clear();
 						queries.clear();
@@ -283,7 +287,9 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 						wxXmlNode *cell = row->GetChildren();
 						while( cell )
 						{
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'A' && ( cell->GetAttribute( "r" ).GetChar( 1 ) >= '0' && cell->GetAttribute( "r" ).GetChar( 1 ) <= '9' ) )
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'A' )
+								rank = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'B' && ( cell->GetAttribute( "r" ).GetChar( 1 ) >= '0' && cell->GetAttribute( "r" ).GetChar( 1 ) <= '9' ) )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -293,7 +299,7 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								name = stringsRoot->GetChildren()->GetChildren()->GetContent();
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r").GetChar( 0 ) == 'B' )
+							if( cell->GetAttribute( "r").GetChar( 0 ) == 'C' )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -301,9 +307,9 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								team = stringsRoot->GetChildren()->GetChildren()->GetContent();
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'C' )
-								age = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'D' )
+								age = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'E' )
 							{
 								int value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 								for( int i = 0; i < value; i++ )
@@ -312,78 +318,78 @@ void CDataImporter::ReadData(std::vector<std::vector<wxString> > &hitters, std::
 								ParsePositions( positions, position );
 								stringsRoot = root;
 							}
-							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'E' )
-								w_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'F' )
-								l_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								w_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'G' )
-								era_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								l_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'H' )
-								whip_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								era_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'I' )
-								g_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								whip_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'J' )
-								gs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								g_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'K' )
-								wpercent_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								gs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'L' )
-								ip_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								wpercent_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'M' )
-								h_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								ip_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'N' )
-								r_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								h_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'O' )
-								er_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								r_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'P' )
-								hr_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								er_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'Q' )
-								bb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								hr_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'R' )
-								k_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								bb_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'S' )
-								cg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								k_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'T' )
-								sho_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								cg_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'U' )
-								s_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								sho_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'V' )
-								bs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								s_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'W' )
-								hld_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+								bs_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
 							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'X' )
+								hld_score = wxAtof( cell->GetChildren()->GetChildren()->GetContent().SubString( 0, 5 ) );
+							if( cell->GetAttribute( "r" ).GetChar( 0 ) == 'Y' )
 								value = wxAtoi( cell->GetChildren()->GetChildren()->GetContent() );
 							cell = cell->GetNext();
 						}
-						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew) VALUES( NULL, \"%s\", \"0\", %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \"0\", \"0\" );", name, age, value, team, (double) value ) );
+						queries.push_back( wxString::Format( "INSERT INTO players(playerid, name, ishitter, age, value, teamid, currvalue, isdrafted, isnew, rank) VALUES( NULL, \"%s\", \'0\', %d, %.2f, (SELECT teamid FROM teams WHERE teams.shortname = \"%s\"), %.2f, \'0\', \'0\', %d );", name, age, value, team, (double) value, rank ) );
 						for( size_t i = 0; i < position.size(); i++ )
-							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( NULL, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"Wins\"), %.3f );", w_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"Saves\"), %.3f);", s_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"ERA\"), %.3f);", era_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"WHIP\"), %.3f);", whip_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"K\"), %.3f);", k_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"IP\"), %.3f );", ip_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"L\"), %.3f );", l_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"H\"), %.3f );", h_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"BB\"), %.3f);", bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"ER\"), %.3f);", er_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"CG\"), %.3f);", cg_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"W-L\"), %.3f);", w_score - l_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"Shutouts\"), %.3f);", sho_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"BS\"), %.3f);", bs_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"S-BS\"), %.3f);", s_score - bs_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"S+Holds\"), %.3f);", s_score + hld_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"S+Holds-BS\"), %.3f);", s_score + hld_score - bs_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"K/9\"), %.3f);", k_score / 9 ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"H/9\"), %.3f);", h_score / 9 ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"BB/9\"), %.3f);", bb_score / 9 ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"K/BB\"), %.3f);", k_score / bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"K-BB\"), %.3f );", k_score - bb_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"W%%\"), %.3f);", wpercent_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"Holds\"), %.3f);", hld_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"G\"), %.3f);", g_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"R\"), %.3f);", r_score ) );
-						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( NULL, (SELECT scoreid FROM scorepitch WHERE scorename = \"HR\"), %.3f);", hr_score ) );
+							queries.push_back( wxString::Format( "INSERT INTO playerposition VALUES( ?, (SELECT positionid FROM positions WHERE positions.positionname = \"%s\") );", position.at( i ) ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"Wins\"), %.3f );", w_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"Saves\"), %.3f);", s_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"ERA\"), %.3f);", era_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"WHIP\"), %.3f);", whip_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"K\"), %.3f);", k_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"IP\"), %.3f );", ip_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"L\"), %.3f );", l_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"H\"), %.3f );", h_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"BB\"), %.3f);", bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"ER\"), %.3f);", er_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"CG\"), %.3f);", cg_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"W-L\"), %.3f);", w_score - l_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"Shutouts\"), %.3f);", sho_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"BS\"), %.3f);", bs_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"S-BS\"), %.3f);", s_score - bs_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"S+Holds\"), %.3f);", s_score + hld_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"S+Holds-BS\"), %.3f);", s_score + hld_score - bs_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"K/9\"), %.3f);", k_score / 9 ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"H/9\"), %.3f);", h_score / 9 ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"BB/9\"), %.3f);", bb_score / 9 ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"K/BB\"), %.3f);", k_score / bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"K-BB\"), %.3f );", k_score - bb_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"W%%\"), %.3f);", wpercent_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"Holds\"), %.3f);", hld_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"G\"), %.3f);", g_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"R\"), %.3f);", r_score ) );
+						queries.push_back( wxString::Format( "INSERT INTO playerscorepitches VALUES( ?, (SELECT scoreid FROM scorepitch WHERE scorename = \"HR\"), %.3f);", hr_score ) );
 						pitchers.push_back( queries );
 						position.clear();
 						queries.clear();
@@ -403,7 +409,7 @@ void CDataImporter::ParsePositions(const wxString &positions, std::vector<wxStri
 	wxString rest, temp = positions;
 	do
 	{
-		position.push_back( temp.BeforeFirst( ',', &rest ) );
+		position.push_back( temp.BeforeFirst( ',', &rest ).Trim( false ) );
 		temp = rest;
 	} 	while( ( rest = temp.BeforeFirst( ',', &rest ) ) != wxEmptyString );
 }

@@ -3,9 +3,14 @@
 
 // for all others, include the necessary headers (this file is usually all you
 // need because it includes almost all "standard" wxWidgets headers)
-#ifndef WX_PRECOMP
+//#ifndef WX_PRECOMP
     #include "wx/wx.h"
+//#endif
+
+#ifndef wxHAS_IMAGES_IN_RESOURCES
+    #include "BaseballDraft.xpm"
 #endif
+
 #include <vector>
 #include <algorithm>
 #include <string.h>
@@ -31,12 +36,9 @@ CStartDialog::CStartDialog(const wxString &title) : wxWizard( NULL, wxID_ANY, ti
 {
 	std::vector<std::vector<wxString> > hitters, pitchers;
 	m_good = true;
-//	CDataImporter importer( "2012_DEMO_DB.6.xlsx" );
+//	CDataImporter importer( "2012_DEMO_DB.8.xlsx" );
 //	importer.ReadData( hitters, pitchers );
-	wxIconBundle bundle;
-	bundle.AddIcon( "Baseball-icon.16.png" );
-	bundle.AddIcon( "Baseball-icon.32.png" );
-	SetIcons( bundle );
+	SetIcon( wxICON( BaseballDraft ) );
 	m_db = new CDb();
 	m_db->OpenConnection( "draft.db" );
 	m_league = NULL;
@@ -74,7 +76,7 @@ wxPanel *CStartDialog::CreateOrSelectLeagueWizard(wxWizard *parent, std::vector<
 	wxTheColourDatabase->AddColour( "NAVY", wxColour( 0, 0, 58 ) );
 	m_label = new wxStaticText( m_panel, wxID_ANY, "Select League" );
 	m_label->SetForegroundColour( wxTheColourDatabase->Find( "NAVY" ) );
-	m_labelLogo = new wxStaticBitmap( m_panel, wxID_ANY, wxBitmap( "27330AOP1.png", wxBITMAP_TYPE_PNG ) );
+	m_labelLogo = new wxStaticBitmap( m_panel, wxID_ANY, wxBITMAP_PNG( logo ) );
 	m_label1 = new wxStaticText( m_panel, wxID_ANY, "Mode: Demo" );
 	m_label2 = new wxStaticText( m_panel, wxID_ANY, "Version: 1.0" );
 	m_url = new wxHyperlinkCtrl( m_panel, wxID_ANY, "www.valuedraft.com", "http://www.valuedraft.com" );
@@ -86,6 +88,8 @@ wxPanel *CStartDialog::CreateOrSelectLeagueWizard(wxWizard *parent, std::vector<
 	font.SetWeight( wxFONTWEIGHT_BOLD );
 	font.SetPointSize( 24 );
 	m_label->SetFont( font );
+	for( std::vector<std::string>::iterator it = leagues.begin(); it < leagues.end(); it++ )
+		m_leagues->Append( *it );
 	wxSizer *horz1 = new wxBoxSizer( wxHORIZONTAL );
 	wxSizer *vert1 = new wxBoxSizer( wxVERTICAL );
 	wxSizer *holder = new wxFlexGridSizer( 3, 2, 5, 5 );
@@ -113,9 +117,8 @@ wxPanel *CStartDialog::CreateOrSelectLeagueWizard(wxWizard *parent, std::vector<
 	vert1->Add( 5, 5, 0, wxEXPAND, 0 );
 	horz1->Add( vert1, 0, wxEXPAND, 0 );
 	horz1->Add( 5, 5, 0, wxEXPAND, 0 );
-	for( std::vector<std::string>::iterator it = leagues.begin(); it < leagues.end(); it++ )
-		m_leagues->Append( *it );
 	m_panel->SetSizerAndFit( horz1 );
+	m_panel->Layout();
 	m_leagues->SetFocus();
 	m_leagues->SetSelection( 0 );
 	return m_panel;
@@ -220,7 +223,7 @@ wxString CStartDialog::GetLeagueName()
 		return m_league->GetLeagueName();
 }
 
-int CStartDialog::GetLeagueId()
+wxLongLong_t CStartDialog::GetLeagueId()
 {
 	return m_leagueId;
 }

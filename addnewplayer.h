@@ -2,13 +2,15 @@
 class CAddNewPlayer : public wxDialog
 {
 public:
-	CAddNewPlayer(wxWindow *parent, const wxString &title, const std::map<wxString,wxString> &names, const CLeagueSettings &settings, const CPlayer *player, int rank = 0);
+	CAddNewPlayer(wxWindow *parent, const wxString &title, const CLeagueSettings &settings, const CPlayer *player, int rank = 0);
 	~CAddNewPlayer(void);
 	virtual bool Validate();
 	CPlayer &GetNewPlayer();
 	void OnAddNewPlayer(wxCommandEvent &event);
 	void OnEnterStats(wxCommandEvent &event);
 	void PlayerChanging(wxCommandEvent &event);
+	void OnUpdateUIRank(wxUpdateUIEvent &event);
+	void OnUpdateUIValue(wxUpdateUIEvent &event);
 	double GetChangedCurrentValue();
 	long GetChangedAmountPaid();
 	int GetChangedRank();
@@ -16,13 +18,17 @@ public:
 	wxString &GetChangedTeam();
 	wxString GetChangedAbbreviatedTeam();
 	std::map<wxString, double> &GetScoring();
-	wxString &GetChangedPositions();
+	std::vector<wxString> &GetChangedPositions();
 	bool PlayerAddedModified();
+	void SetOldValue(double value);
+	void SetOldRange(int range);
 protected:
 	void SetProperties(const CPlayer *player, const wxString &title);
 	bool CheckPlayerPosition();
 private:
 	bool m_isHitter;
+	double m_oldValue;
+	int m_oldRank;
 	std::map<wxString,double> m_statistics;
 	std::map<wxString,NewPlayerStats> m_newStats;
 	std::map<wxString,wxString> m_teams;

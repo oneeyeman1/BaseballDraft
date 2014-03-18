@@ -22,7 +22,8 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 	std::vector<wxString>::iterator it;
 	std::vector<wxString> scoring;
 	int rows, remainder, score = 0;
-	if( positions.Find( "P " ) != wxNOT_FOUND )
+	SetTitle( "Enter the stats for the player" );
+	if( positions.Find( "P" ) != wxNOT_FOUND )
 	{
 		m_stats["Wins"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["Wins"], false ) : NewPlayerStats( 0, false );
 		m_stats["Saves"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["Saves"], false ) : NewPlayerStats( 0, false );
@@ -51,10 +52,11 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 		m_stats["Holds"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["Holds"], false ) : NewPlayerStats( 0, false );
 		m_stats["G"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["G"], false ) : NewPlayerStats( 0, false );
 		m_stats["R"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["R"], false ) : NewPlayerStats( 0, false );
-		m_stats["hr"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["HR"], false ) : NewPlayerStats( 0, false );
+		m_stats["HR"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["HR"], false ) : NewPlayerStats( 0, false );
 		rows = settings.GetPitchScoring().size() / 2;
 		remainder = settings.GetPitchScoring().size() % 2;
 		scoring = settings.GetPitchScoring();
+//		*m_valid = new wxValidator*[settings.GetPitchScoring().size()];
 	}
 	else
 	{
@@ -66,9 +68,9 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 		m_stats["OBP"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["OBP"], false ) : NewPlayerStats( 0, false );
 		m_stats["SLG"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["SLG"], false ) : NewPlayerStats( 0, false );
 		m_stats["OPS"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["OPS"], false ) : NewPlayerStats( 0, false );
-		m_stats["bb"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["BB"], false ) : NewPlayerStats( 0, false );
-		m_stats["h"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["H"], false ) : NewPlayerStats( 0, false );
-		m_stats["Ks"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["K"], false ) : NewPlayerStats( 0, false );
+		m_stats["BB"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["BB"], false ) : NewPlayerStats( 0, false );
+		m_stats["H"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["H"], false ) : NewPlayerStats( 0, false );
+		m_stats["K"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["K"], false ) : NewPlayerStats( 0, false );
 		m_stats["1B"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["1B"], false ) : NewPlayerStats( 0, false );
 		m_stats["2B"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["2B"], false ) : NewPlayerStats( 0, false );
 		m_stats["3B"] = player ? NewPlayerStats( const_cast<CPlayer *>( player )->GetScoring()["3B"], false ) : NewPlayerStats( 0, false );
@@ -87,6 +89,8 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 		rows = settings.GetHitScoring().size() / 2;
 		remainder = settings.GetHitScoring().size() % 2;
 		scoring = settings.GetHitScoring();
+		m_count = 26;
+//		*m_valid = new wxValidator*[m_count];
 	}
 	m_main = scoring.size();
 	m_extra = m_stats.size() - scoring.size();
@@ -109,77 +113,93 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 	vertical->Add( 5, 5, 0, wxEXPAND, 0 );
 	unsigned int counter = 0;
 	double value = 0.0;
+	wxValidator *valid = NULL;
 	int val = 0;
 	for( i = 0; i <= rows; i++ )
 	{
-		wxString format = "%d";
+		wxString format;
 		wxString label = scoring.at( score );
-		bool isFloat = false;
-		if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" )
+		bool isFloat;
+		if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" || label == "W%" )
 		{
 			format = "%.3f";
 			value = m_stats[scoring.at( score )].m_value;
+			valid = new wxFloatingPointValidator<double>( 3, &value, wxNUM_VAL_ZERO_AS_BLANK );
 			isFloat = true;
 		}
-		else if( label == "ERA" || label == "WHIP" || label == "IP" )
+		else if( label == "ERA" || label == "WHIP" || label == "K/9" || label == "H/9" || label == "BB/9" || label == "K/BB" )
 		{
 			format = "%.2f";
 			value = m_stats[scoring.at( score )].m_value;
+			valid = new wxFloatingPointValidator<double>( 2, &value, wxNUM_VAL_ZERO_AS_BLANK );
 			isFloat = true;
 		}
-		else if( label == "W%" )
+		else if( label == "IP" )
 		{
-			format = "%.2f%%";
+			format = "%.1f";
 			value = m_stats[scoring.at( score )].m_value;
+			valid = new wxFloatingPointValidator<double>( 1, &value, wxNUM_VAL_ZERO_AS_BLANK );
 			isFloat = true;
 		}
 		else
 		{
+			format = "%d";
 			isFloat = false;
 			val = (int)m_stats[scoring.at( score )].m_value;
+			valid = new wxIntegerValidator<int>( &val, wxNUM_VAL_ZERO_AS_BLANK );
 		}
 		m_labels[counter] = new wxStaticText( m_panel, wxID_ANY, scoring.at( score ) );
-		m_scores[counter] = new wxTextCtrl( m_panel, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, wxFloatingPointValidator<double>( 3, NULL, wxNUM_VAL_ZERO_AS_BLANK ), scoring.at( score ) );
+		m_scores[counter] = new wxTextCtrl( m_panel, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, *valid, scoring.at( score ) );
+		delete valid;
+		valid = NULL;
 		m_stats[scoring[score++]].m_used = true;
 		container->Add( m_labels[counter], 0, wxEXPAND, 0 );
 		container->Add( m_scores[counter], 0, wxEXPAND, 0 );
 		counter++;
 		if( counter + 1 < scoring.size() )
 		{
-			wxString format = "%d";
+			wxString format;
 			wxString label = scoring.at( score );
-			bool isFloat = false;
-			if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" )
+			bool isFloat;
+			if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" || label == "W%" )
 			{
 				format = "%.3f";
 				value = m_stats[scoring.at( score )].m_value;
+				valid = new wxFloatingPointValidator<double>( 3, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
-			else if( label == "ERA" || label == "WHIP" || label == "IP" )
+			else if( label == "ERA" || label == "WHIP" || label == "K/9" || label == "H/9" || label == "BB/9" || label == "K/BB" )
 			{
 				format = "%.2f";
 				value = m_stats[scoring.at( score )].m_value;
+				valid = new wxFloatingPointValidator<double>( 2, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
-			else if( label == "W%" )
+			else if( label == "IP" )
 			{
-				format = "%.2f%%";
+				format = "%.1f";
 				value = m_stats[scoring.at( score )].m_value;
+				valid = new wxFloatingPointValidator<double>( 1, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
 			else
 			{
+				format = "%d";
 				isFloat = false;
 				val = (int)m_stats[scoring.at( score )].m_value;
+				valid = new wxIntegerValidator<int>( &val, wxNUM_VAL_ZERO_AS_BLANK );
 			}
 			m_labels[counter] = new wxStaticText( m_panel, wxID_ANY, scoring.at( score ) );
-			m_scores[counter] = new wxTextCtrl( m_panel, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, wxFloatingPointValidator<double>( 3, NULL, wxNUM_VAL_ZERO_AS_BLANK ), scoring.at( score ) );
+			m_scores[counter] = new wxTextCtrl( m_panel, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, *valid, scoring.at( score ) );
+			delete valid;
+			valid = NULL;
 			m_stats[scoring[score++]].m_used = true;
 			container->Add( m_labels[counter], 0, wxEXPAND, 0 );
 			container->Add( m_scores[counter], 0, wxEXPAND, 0 );
 			counter++;
 		}
 	}
+	m_count = counter + 1;
 	counter = 0;
 	wxWindow *win = m_pane->GetPane();
 	m_paneSizer = new wxFlexGridSizer( extraremainder == 0 ? extrarows : extrarows + 1, 4, 5, 5 );
@@ -187,37 +207,45 @@ CEnterStats::CEnterStats(wxWindow *parent, const CLeagueSettings &settings, cons
 	{
 		if( !(*it).second.m_used )
 		{
-			wxString format = "%d";
+			wxString format;
 			wxString label = (*it).first;
-			bool isFloat = false;
-			if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" )
+			bool isFloat;
+			if( label == "AVG" || label == "OBP" || label == "SLG" || label == "OPS" || label == "W%" )
 			{
 				format = "%.3f";
 				value = (*it).second.m_value;
+				valid = new wxFloatingPointValidator<double>( 3, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
-			else if( label == "ERA" || label == "WHIP" || label == "IP" )
+			else if( label == "ERA" || label == "WHIP" || label == "K/9" || label == "H/9" || label == "BB/9" || label == "K/BB" )
 			{
 				format = "%.2f";
 				value = (*it).second.m_value;
+				valid = new wxFloatingPointValidator<double>( 2, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
-			else if( label == "W%" )
+			else if( label == "IP" )
 			{
-				format = "%.2f%%";
+				format = "%.1f";
 				value = (*it).second.m_value;
+				valid = new wxFloatingPointValidator<double>( 1, &value, wxNUM_VAL_ZERO_AS_BLANK );
 				isFloat = true;
 			}
 			else
 			{
+				format = "%d";
 				isFloat = false;
 				val = (int)(*it).second.m_value;
+				valid = new wxIntegerValidator<int>( &val, wxNUM_VAL_ZERO_AS_BLANK );
 			}
 			m_extraLabels[counter] = new wxStaticText( win, wxID_ANY, (*it).first );
-			m_extraScores[counter] = new wxTextCtrl( win, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, wxFloatingPointValidator<double>( 3, NULL, wxNUM_VAL_ZERO_AS_BLANK ), (*it).first );
+			m_extraScores[counter] = new wxTextCtrl( win, wxID_ANY, isFloat ? wxString::Format( format, value ) : wxString::Format( format, val ), wxDefaultPosition, wxDefaultSize, 0, *valid, (*it).first );
+			delete valid;
+			valid = NULL;
 			m_paneSizer->Add( m_extraLabels[counter], 0, wxEXPAND, 0 );
 			m_paneSizer->Add( m_extraScores[counter], 0, wxEXPAND, 0 );
 			counter++;
+			m_count++;
 		}
 	}
 	win->SetSizer( m_paneSizer );
@@ -298,6 +326,8 @@ void CEnterStats::OnCollapsiblePane(wxCollapsiblePaneEvent &event)
 {
 	if( event.GetCollapsed() )
 		return;
+	else
+		Center();
 }
 
 void CEnterStats::OnModifyingStats(wxCommandEvent &WXUNUSED(event))

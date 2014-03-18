@@ -74,6 +74,7 @@ currvalue double
 notes varchar(125)
 isdrafted char
 isnew char(1)
+rank integer
 foreign key(teamid) references teams(teamid)
 
 playerposition
@@ -118,29 +119,41 @@ value double
 foreign key(id) references leagues(id)
 foreign key(scoreid) references scorepitch(scoreid)
 
-leagueplayershitter
-id integer
-playerid integer
+playersinleague
+id integer primary key
+playerid integer primary key
+ishitter char
+age integer
 value double
 currvalue double
-scoreid integer
-score double
 draft boolean
 isnew char(1)
-foreign key(id) reference leagues(id)
-foreign key(playerid) reference players(playerid)
+current_rank integer
+original_rank integer
+deleted integer
+teamid integer
+notes varchar(125)	
+foreign key(id) references leagues(id)
+foreign key(playerid) references players(playerid)
+foreign key(teamid) references teams(teamid)
 
-leagueplayerspitcher
+leaguescorehitter
 id integer
 playerid integer
-value double
-currvalue double
 scoreid integer
-score double
-draft boolean
-isnew char(1)
-foreign key(id) reference leagues(id)
-foreign key(playerid) reference players(playerid)
+value double
+foreign key(id) references leagues(id)
+foreign key(id,playerid) references playersinleague(id,playerid)
+foreign key(scoreid) references scorehits(scoreid)
+
+leaguescorepitcher
+id integer
+playerid integer
+scoreid integer
+value double
+foreign key(id) references leagues(id)
+foreign key(id,playerid) references playersinleague(id,playerid)
+foreign key(scoreid) references scorepitch(scoreid)
 
 playerdraft
 playerid integer
@@ -152,3 +165,10 @@ draftposition char(2)
 foreign key(playerid) references players(playerid)
 foreign key(id) references leagues(id)
 foreign key(ownerid) references owners(ownerid)
+
+CREATE TRIGGER playersinleague_insert AFTER INSERT ON playersinleague WHEN new.current_rank IS NULL
+BEGIN
+	UPDATE playersinleague SET current_rank = 1 + (SELECT coalesce( max( current_rank ), 0 ) FROM playersinleague WHERE id = new.id) WHERE rowid = new.rowid;
+	UPDATE playersinleague SET original_rank = current_rank WHERE rowid = new.rowid;
+END;
+

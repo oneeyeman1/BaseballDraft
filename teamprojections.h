@@ -1,23 +1,21 @@
 #pragma once
-class Projections
+typedef std::pair<wxString, double> SDPair;
+class Comparator
 {
 public:
-	Projections(wxString team)
+	bool operator()(const SDPair &lhs, const SDPair &rhs) const
 	{
-		m_team = team;
-		m_value = 0;
+		if( lhs.second < rhs.second )
+			return true;
+		else if( lhs.second > rhs.second )
+			return false;
+		else
+			return lhs.first < rhs.first;
 	}
-	wxString &GetOwner() { return m_team; };
-	bool operator<(const Projections &projection) const { return m_value < projection.m_value; };
-	Projections operator+(const double &projection)
-	{
-		this->m_value += projection;
-		return *this;
-	};
-private:
-	wxString m_team;
-	double m_value;
 };
+
+typedef std::set<SDPair, Comparator> SDSetPair;
+typedef std::map<wxString, SDSetPair> MapStringToPair;
 
 class CTeamProjections : public wxPanel
 {
@@ -28,11 +26,12 @@ public:
 	void UnAssignPlayer(const CPlayer &player);
 	void Resize();
 	void ResetProjections();
+	void ChangeGrids(const std::vector<wxString> &hitterScoring, const std::vector<wxString> &pitcherScoring);
 protected:
 	void ChangeProjections(const wxString &owner, const CPlayer &player);
 private:
-	std::map<wxString,std::vector<Projections> > m_score;
-	std::vector<Projections> m_projs[53];
+	MapStringToPair m_score;
+	SDSetPair m_projs[53];
 	wxGrid *m_stats, *m_projections;
 	wxToggleButton *m_targets;
 };

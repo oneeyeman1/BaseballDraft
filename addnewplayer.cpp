@@ -20,10 +20,10 @@
 #include "newplayerpositions.h"
 #include "addnewplayer.h"
 
-CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std::map<wxString,wxString> &names, const CLeagueSettings &settings, const CPlayer *player, int rank) : wxDialog( parent, wxID_ANY, title )
+CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const CLeagueSettings &settings, const CPlayer *player, int rank) : wxDialog( parent, wxID_ANY, title )
 {
 	m_player = const_cast<CPlayer *>( player );
-	m_teams = names;
+	m_teams = settings.GetTeamsName();
 	m_settings = &( const_cast<CLeagueSettings &>( settings ) );
     m_panel = new wxPanel( this, wxID_ANY );
     m_label1 = new wxStaticText( m_panel, wxID_ANY, "First Name:" );
@@ -33,8 +33,8 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
     m_label3 = new wxStaticText( m_panel, wxID_ANY, "Age:" );
     m_age = new wxTextCtrl( m_panel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, 0, wxIntegerValidator<int>() );
     m_label4 = new wxStaticText( m_panel, wxID_ANY, "Team:" );
-    m_team = new wxComboBox( m_panel, wxID_ANY, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_DROPDOWN|wxCB_READONLY|wxCB_SORT );
-	for( std::map<wxString,wxString>::const_iterator it = names.begin(); it != names.end(); it++ )
+    m_team = new wxComboBox( m_panel, wxID_ANY, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_DROPDOWN|wxCB_READONLY );
+	for( std::map<wxString,wxString>::iterator it = m_teams.begin(); it != m_teams.end(); it++ )
 	{
 		int pos = m_team->Append( (*it).first );
 		m_team->SetClientData( pos, (void *) &(*it).second );
@@ -58,6 +58,7 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
 		m_label6 = new wxStaticText( m_panel, wxID_ANY, "BegValue" );
 		m_value = new wxTextCtrl( m_panel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, 0, wxIntegerValidator<unsigned int>() );
 		m_rank = new wxSpinCtrl( m_panel, wxID_ANY, wxString::Format( "%d", rank + 1 ), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxSP_WRAP | wxALIGN_CENTRE_HORIZONTAL, 1, rank + 1, rank + 1 );
+		m_rank->Enable( false );
 	}
 	else if( player )
 	{
@@ -117,6 +118,8 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const std:
 	m_team->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_position->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_value->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
+	m_rank->Bind( wxEVT_UPDATE_UI, &CAddNewPlayer::OnUpdateUIRank, this );
+	m_value->Bind( wxEVT_UPDATE_UI, &CAddNewPlayer::OnUpdateUIValue, this );
 	if( player )
 		m_value->SetFocus();
 }
@@ -131,6 +134,8 @@ CAddNewPlayer::~CAddNewPlayer(void)
 	m_team->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_position->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
 	m_value->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );
+	m_rank->Unbind( wxEVT_UPDATE_UI, &CAddNewPlayer::OnUpdateUIRank, this );
+	m_value->Unbind( wxEVT_UPDATE_UI, &CAddNewPlayer::OnUpdateUIValue, this );
 }
 
 void CAddNewPlayer::SetProperties(const CPlayer *player, const wxString &title)
@@ -205,7 +210,7 @@ void CAddNewPlayer::OnAddNewPlayer(wxCommandEvent &WXUNUSED(event))
 				m_statistics["Holds"] = 0;
 				m_statistics["G"] = 0;
 				m_statistics["R"] = 0;
-				m_statistics["hr"] = 0;
+				m_statistics["HR"] = 0;
 			}
 			else
 			{
@@ -217,9 +222,9 @@ void CAddNewPlayer::OnAddNewPlayer(wxCommandEvent &WXUNUSED(event))
 				m_statistics["OBP"] = 0;
 				m_statistics["SLG"] = 0;
 				m_statistics["OPS"] = 0;
-				m_statistics["bb"] = 0;
-				m_statistics["h"] = 0;
-				m_statistics["Ks"] = 0;
+				m_statistics["BB"] = 0;
+				m_statistics["H"] = 0;
+				m_statistics["K"] = 0;
 				m_statistics["1B"] = 0;
 				m_statistics["2B"] = 0;
 				m_statistics["3B"] = 0;
@@ -248,12 +253,8 @@ void CAddNewPlayer::OnAddNewPlayer(wxCommandEvent &WXUNUSED(event))
 		m_value->GetValue().ToDouble( &value );
 		if( !m_player )
 		{
-			wxStringTokenizer tokens( m_position->GetValue(), ", " );
-			while( tokens.HasMoreTokens() )
-				m_pos.push_back( tokens.GetNextToken() );
-			m_player = new CPlayer( 0, m_first->GetValue() + " " + m_last->GetValue(), m_pos, wxAtoi( m_age->GetValue() ), wxAtoi( m_value->GetValue() ), m_teams[m_team->GetValue()], m_team->GetValue(), m_statistics, m_position->GetValue().find( "P" ) == wxNOT_FOUND ? true : false, value, wxEmptyString, wxAtoi( m_value->GetValue() ) );
+			m_player = new CPlayer( 0, m_first->GetValue() + " " + m_last->GetValue(), m_pos, wxAtoi( m_age->GetValue() ), wxAtoi( m_value->GetValue() ), m_teams[m_team->GetValue()], m_team->GetValue(), m_statistics, m_position->GetValue().find( "P" ) == wxNOT_FOUND ? true : false, value, wxEmptyString, wxAtoi( m_value->GetValue() ), false );
 			m_player->SetNewPlayer( true );
-			m_player->SetRange( m_rank->GetValue() );
 		}
 		else
 		{
@@ -309,6 +310,7 @@ bool CAddNewPlayer::CheckPlayerPosition()
 	bool good = true, isHitter = false, isPitcher = false;
 	wxString position = m_position->GetValue();
 	m_positions.clear();
+	m_pos.clear();
 	if( position.IsEmpty() )
 	{
 		wxMessageBox( "Please select player position to enter the statistics" );
@@ -396,12 +398,38 @@ std::map<wxString, double> &CAddNewPlayer::GetScoring()
 	return m_statistics;
 }
 
-wxString &CAddNewPlayer::GetChangedPositions()
+std::vector<wxString> &CAddNewPlayer::GetChangedPositions()
 {
-	wxStringTokenizer tokens( m_position->GetValue(), ", " );
-	while( tokens.HasMoreTokens() )
+	return m_pos;
+}
+
+void CAddNewPlayer::OnUpdateUIRank(wxUpdateUIEvent &event)
+{
+	double value;
+	m_value->GetValue().ToDouble( &value );
+	if( value != m_oldValue )
+		event.Enable( false );
+	else
+		event.Enable( true );
+}
+
+void CAddNewPlayer::SetOldValue(double value)
+{
+	m_oldValue = value;
+}
+
+void CAddNewPlayer::SetOldRange(int range)
+{
+	m_oldRank = range;
+}
+
+void CAddNewPlayer::OnUpdateUIValue(wxUpdateUIEvent &event)
+{
+	if( m_player )
 	{
-		m_positions += tokens.GetNextToken();
+		if( m_rank->GetValue() != m_oldRank )
+			event.Enable( false );
+		else
+			event.Enable( true );
 	}
-	return m_positions;
 }

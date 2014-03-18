@@ -7,7 +7,7 @@ public:
 	CLeagueSettings *GetSelectedLeague();
 	bool IsDialogGood();
 	wxString GetLeagueName();
-	int GetLeagueId();
+	wxLongLong_t GetLeagueId();
 	CDb *GetDatabase();
 	wxWizardPage *GetFirstPage();
 	virtual bool RunWizard(wxWizardPage *firstPage);
@@ -20,7 +20,7 @@ protected:
 private:
 	CDb *m_db;
 	bool m_good;
-	int m_leagueId;
+	wxLongLong_t m_leagueId;
 	std::vector<std::string> m_leaguesList;
 	CLeagueSettings *m_league;
 	wxWizardPageSimple *m_panel;

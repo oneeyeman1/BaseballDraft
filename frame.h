@@ -1,23 +1,26 @@
 #pragma once
 enum
 {
-	wxMENU_FILE_ADD_PLAYER,
-	wxMENU_FILE_RESET_ALL_PLAYERS,
-	wxMENU_FILE_CLEARALL,
-	wxMENU_EDIT_LEAGUE_SETTINGS,
-	wxMENU_EDIT_TARGETS,
-	wxMENU_EDIT_PLAYER,
-	wxMENU_DRAFT_PLAYER,
-	wxMENU_UNASSIGN_PLAYER
+	wxMENU_FILE_ADD_PLAYER = 1,
+	wxMENU_FILE_RESET_ALL_PLAYERS = 2,
+	wxMENU_FILE_CLEARALL = 3,
+	wxMENU_EDIT_LEAGUE_SETTINGS = 4,
+	wxMENU_EDIT_TARGETS = 5,
+	wxMENU_EDIT_PLAYER = 6,
+	wxMENU_DRAFT_PLAYER = 7,
+	wxMENU_UNASSIGN_PLAYER = 8,
+	wxMENU_DELETE_PLAYER = 9
 };
 
 class CFrame: public wxFrame
 {
 public:
-    CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, const wxString &name, const int leagueId);
+    CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, const wxString &name, const wxLongLong_t leagueId);
 	~CFrame(void);
+	int GetAvailablePlayers();
 	void OnContextMenu(wxGridEvent &event);
 	void OnAddNewPlayer(wxCommandEvent &event);
+	void OnDeletePlayer(wxCommandEvent &event);
 	void OnClose(wxCloseEvent &event);
 	void OnHittersEdit(wxGridEvent &event);
 	void OnPitchersEdit(wxGridEvent &event);
@@ -41,20 +44,21 @@ public:
 	bool IsGood();
 	DECLARE_EVENT_TABLE()
 private:
-	int m_budget, m_leagueId;
+	int m_budget;
+	wxLongLong_t m_leagueId;
 	std::map<wxString,int> m_positions;
 	std::map<wxString, bool> m_columnsDisplayedHitters;
 	std::map<wxString, bool> m_columnsDisplayedPitchers;
 	std::map<wxString, bool> m_columnsDisplayed;
 	std::vector<wxString> m_leagueScoringHitters, m_leagueScoringPitchers;
 	std::vector<CPlayer> m_draftResult;
-	bool m_rosterDisplayed, m_isGood, m_editPlayerTipDisplayed;
+	bool m_rosterDisplayed, m_isGood;
 	wxBoxSizer *m_teamRoster, *m_hitters_pitchersRoster, *m_draftedPlayer;
 	wxBoxSizer *m_panelSizer;
 	wxFlexGridSizer *m_teamRosterBottom;
 	CNameCompleter *m_completer;
-	int m_availablePlayers, m_totalSpent;
-	double m_draftedBeginValue, m_valueLeft;
+	int m_availablePlayers, m_totalSpent, m_zeroRanked;
+	double m_draftedBeginValue, m_valueLeft, m_inflationRatio;
 	wxString m_oldOwner;
 	CDb *m_db;
 	CLeagueData *m_data;
@@ -70,13 +74,13 @@ private:
 	int CalculatePitchers();
 
 protected:
-	int LoadLeagueData(CLeagueSettings *league, const CDb &db, CLeagueData &data, const wxString &name, const int leagueId, int &numPlayers, std::vector<CPlayer> &draftResult);
+	int LoadLeagueData(CLeagueSettings *league, const CDb &db, CLeagueData &data, const wxString &name, const wxLongLong_t leagueId, int &numPlayers, std::vector<CPlayer> &draftResult, int &zeroRanked);
 	void DoDraftPlayer(const CPlayer &player, const wxString &owner, const wxString &name);
 	void DisplayDraftedPlayer(CMyGrid *grid, CPlayer *player, int row);
 	void DisplayOwnerParameters(int hitters, int pitchers);
 	void DoUnAssignPlayer(bool doErase);
 	void DoPerformResetLeague(const int &league);
-	void DoEditPlayerFromZero(const wxString name, int droppedValue, double changedValue, CPlayer *player, int style);
+	void DoEditPlayerFromZero(const int name, int droppedValue, double changedValue, CPlayer *player, int style, const double &droppedPlayerValue);
     wxStaticText* m_label1;
     wxComboBox* m_teams;
     wxButton* m_hideRoster;

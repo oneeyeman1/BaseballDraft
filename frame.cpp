@@ -8,7 +8,12 @@
     #include "wx/wx.h"
 #endif
 
+#ifndef wxHAS_IMAGES_IN_RESOURCES
+    #include "BaseballDraft.xpm"
+#endif
+
 #include <vector>
+#include <set>
 #include <map>
 #include <algorithm>
 #include "sqlite3.h"
@@ -23,7 +28,6 @@
 #include "wx/textcompleter.h"
 #include "textctrl.h"
 #include "leaguesettings.h"
-#include "mytipdialog.h"
 #include "enterstats.h"
 #include "addnewplayer.h"
 #include "db.h"
@@ -53,9 +57,8 @@ BEGIN_EVENT_TABLE(CFrame, wxFrame)
 	EVT_CLOSE(CFrame::OnClose)
 END_EVENT_TABLE()
 
-CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, const wxString &name, const int leagueId) : wxFrame( NULL, wxID_ANY, title )
+CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, const wxString &name, const wxLongLong_t leagueId) : wxFrame( NULL, wxID_ANY, title )
 {
-	m_editPlayerTipDisplayed = true;
 	m_isGood = true;
 	m_dirty = false;
 	m_oldOwner = "Team 1";
@@ -69,15 +72,13 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	m_panel1 = NULL;
 	m_panel2 = NULL;
 	m_draftPlayer = NULL;
-	wxIconBundle bundle;
-	bundle.AddIcon( "Baseball-icon.16.png" );
-	bundle.AddIcon( "Baseball-icon.32.png" );
+	SetIcon( wxICON( BaseballDraft ) );
 	m_availablePlayers = 0;
+	m_zeroRanked = 0;
 	m_totalSpent = 0;
 	m_draftedBeginValue = 0;
 	wxProgressDialog dlg( "Fantasy Draft", "Please wait, data is being retrieved...", 100, NULL, wxPD_SMOOTH );
 	dlg.Pulse( "Please wait, data is being retrieved..." );
-	SetIcons( bundle );
 	m_rosterDisplayed = true;
 	wxMenu *file_menu = new wxMenu();
 	wxMenu *edit_menu = new wxMenu();
@@ -97,7 +98,7 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	SetMenuBar( bar );
 	m_db = const_cast<CDb *>( &db );
 	m_data = new CLeagueData();
-	if( LoadLeagueData( league, db, *m_data, name, leagueId, m_availablePlayers, m_draftResult ) != SQLITE_OK )
+	if( LoadLeagueData( league, db, *m_data, name, leagueId, m_availablePlayers, m_draftResult, m_zeroRanked ) != SQLITE_OK )
 	{
 		m_isGood = false;
 		return;
@@ -128,7 +129,8 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	m_label4 = new wxStaticText( m_panel, wxID_ANY, "Salary Left:" );
 	m_salaryLeft = new wxStaticText( m_panel, wxID_ANY, "$0" );
 	m_label7 = new wxStaticText( m_panel, wxID_ANY, "Inflation" );
-	m_inflation = new wxStaticText( m_panel, wxID_ANY, "0%" );
+	m_inflationRatio = 1.0;
+	m_inflation = new wxStaticText( m_panel, wxID_ANY, wxString::Format( "%.2f", m_inflationRatio ) );
 	m_label5 = new wxStaticText( m_panel, wxID_ANY, "Players Left:" );
 	m_playersLeft = new wxStaticText( m_panel, wxID_ANY, "0" );
 	m_label8 = new wxStaticText( m_panel, wxID_ANY, "Profit:" );
@@ -165,6 +167,7 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	Bind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnUnAssignPlayer, this, wxMENU_UNASSIGN_PLAYER );
 	Bind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnPrepareDraft, this, wxMENU_DRAFT_PLAYER );
 	Bind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnAddNewPlayer, this, wxMENU_EDIT_PLAYER );
+	Bind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnDeletePlayer, this, wxMENU_DELETE_PLAYER );
 }
 
 CFrame::~CFrame(void)
@@ -196,6 +199,7 @@ CFrame::~CFrame(void)
 	Unbind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnUnAssignPlayer, this, wxMENU_UNASSIGN_PLAYER );
 	Unbind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnPrepareDraft, this, wxMENU_DRAFT_PLAYER );
 	Unbind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnAddNewPlayer, this, wxMENU_EDIT_PLAYER );
+	Unbind( wxEVT_COMMAND_MENU_SELECTED, &CFrame::OnDeletePlayer, this, wxMENU_DELETE_PLAYER );
 	if( m_panel1 )
 	{
 		m_panel1->GetAddPlayerButton().Unbind( wxEVT_COMMAND_BUTTON_CLICKED, &CFrame::OnAddNewPlayer, this );
@@ -220,19 +224,20 @@ void CFrame::OnClose(wxCloseEvent &event)
 {
 	if( m_dirty )
 	{
-		int answer = wxMessageBox( "Do you want to save the changes?", "Message", wxYES_NO | wxCENTRE | wxYES_DEFAULT );
+		int answer = wxMessageBox( "Do you want to save the changes?", "Message", wxYES_NO | wxCANCEL | wxCENTRE | wxYES_DEFAULT );
 		int size = m_data->m_players->size();
 		if( answer == wxYES )
 		{
 			wxProgressDialog dlg( "Data saving in progress", wxString( "", 100 ), size, this, wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_SMOOTH );
 			int counter = 1;
-			int i = 1;
+			int i = 1, res;
 			bool success = true;
 			bool skip = false;
 			m_db->StartTransaction();
-			success = m_db->DeleteAllDraft( m_leagueId );
-			if( success == SQLITE_OK )
+			res = m_db->DeleteAllDraft( m_leagueId );
+			if( res == SQLITE_OK )
 			{
+				wxString errorMessage = wxEmptyString;
 				for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !success; it++ )
 				{
 					wxString message = wxString::Format( "Updating player %d of %d", counter, size );
@@ -254,13 +259,31 @@ void CFrame::OnClose(wxCloseEvent &event)
 						event.Veto();
 					}
 					else
-						success = m_db->UpdatePlayer( (*it), m_leagueId );
+					{
+						if( (*it).IsNewPlayer() )
+							res = m_db->AddNewPlayer( (*it), m_leagueId, false, errorMessage );
+						else
+							res = m_db->UpdatePlayer( (*it), m_leagueId, errorMessage );
+						if( res == SQLITE_OK )
+						{
+							dlg.Destroy();
+							wxMessageBox( wxString::Format( "Error occured while saving data: %s", errorMessage ) );
+							event.Skip();
+							m_db->FinishTransaction( false );
+							return;
+						}
+					}
 				}
 			}
 			m_db->FinishTransaction( !success );
 		}
+		if( answer == wxNO )
+			event.Skip();
+		if( answer == wxCANCEL )
+			event.Veto();
 	}
-	event.Skip();
+	else
+		event.Skip();
 }
 
 void CFrame::set_properties()
@@ -484,7 +507,7 @@ void CFrame::do_layout()
     buttonSizer->Add( m_teamProjectionsData, 0, wxEXPAND, 0 );
     buttonSizer->AddStretchSpacer();
     buttonSizer->Add( m_draftResultsData, 0, wxEXPAND, 0 );
-	statSizerTop->Add( buttonSizer, 1, wxEXPAND, 0 );
+	statSizerTop->Add( buttonSizer, 0, wxEXPAND, 0 );
 	statSizerTop->Add( 5, 5, 0, wxEXPAND, 0 );
 	m_panelSizer->Add( m_panel1, 1, wxEXPAND, 0 );
 	m_panelSizer->Add( m_panel2, 1, wxEXPAND, 0 );
@@ -506,8 +529,6 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 {
 	wxString title;
 	bool isEdit;
-	std::map<wxString,wxString> teamNames;
-	m_db->GetSelectedTeams( *(m_data->m_settings), teamNames );
 	CPlayer *player;
 	if( event.GetId() == wxMENU_EDIT_PLAYER )
 	{
@@ -521,68 +542,129 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 		player = NULL;
 		isEdit = false;
 	}
-	CAddNewPlayer dlg( this, title, teamNames, *(m_data->m_settings), player, m_data->m_players->size() );
+	CAddNewPlayer dlg( this, title, *(m_data->m_settings), player, m_data->m_players->size() );
+	if( player )
+	{
+		dlg.SetOldRange( player->GetRange() );
+		dlg.SetOldValue( player->GetValue() );
+	}
 	if( dlg.ShowModal() == wxID_OK )
 	{
 		if( !isEdit )
 		{
 			player = &(dlg.GetNewPlayer());
+			bool found = false;
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
+			{
+				if( !(*it).IsPlayerDeleted() && ( player->GetName() == (*it).GetName() && player->GetAge() == (*it).GetAge() && player->GetTeam() == (*it).GetTeam() ) )
+				{
+					found = true;
+				}
+			}
+			if( found )
+			{
+				wxMessageBox( "Such player already exist in the league" );
+				return;
+			}
 			wxString playerDropped = wxEmptyString;
 			double value = player->GetValue();
 			if( value > 0 )
 			{
-				CDroppedValuePlayer dlg1( this, m_data->m_players, ADDPLAYER );
-				dlg1.Center();
-				if( dlg1.ShowModal() == wxID_OK )
-					playerDropped = dlg1.GetDroppedPlayerName();
-				else
-				{
-					delete player;
-					return;
-				}
-			}
-			if( m_db->AddNewPlayer( *player, m_leagueId, false ) == SQLITE_OK )
-			{
-				int currentRank = m_data->m_players->size() + 1, changedRank = dlg.GetChangedRank();
-				if( currentRank > changedRank )
-				{
-					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
-					{
-						int range = (*it).GetRange();
-						if( range >= changedRank && range < currentRank )
-							(*it).SetRange( range + 1 );
-						if( range == currentRank )
-							(*it).SetRange( changedRank );
-					}
-				}
-				player->SetNewPlayer( true );
+				PlayerSorter sorter;
+				sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+				sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
+				std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 				bool found = false;
-				if( value > 0 )
+				for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend() && !found; it++ )
 				{
-					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
+					if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
+						continue;
+					if( (*it).GetValue() > 0 )
 					{
-						if( (*it).GetName() == playerDropped )
-						{
-							found = true;
-							(*it).SetValue( 0 );
-							(*it).SetCurrentValue( 0.0 );
-							m_panel1->SetPlayerToZero( playerDropped );
-						}
+						playerDropped = (*it).GetName();
+						found = true;
 					}
-					double diff = - ( (double) value / ( m_availablePlayers - m_draftResult.size() ) );
-					wxBeginBusyCursor();
-					m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
-					wxEndBusyCursor();
 				}
-				else
-				{
-					double diff = 0;
-					wxBeginBusyCursor();
-					m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
-					wxEndBusyCursor();
-				}
-				m_draftPlayer->AddPlayer( *player );
 			}
+/*				found = false;
+				for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend() && !found; it++ )
+				{
+					if( (*it).IsPlayerDeleted() )
+						continue;
+					if( (*it).GetValue() == value )
+					{
+						changedRank = (*it).GetRange() + 1;
+						found = true;
+					}
+					if( (*it).GetValue() > value )
+					{
+						changedRank = (*it).GetRange() + 1;
+						found = true;
+					}
+				}
+			}
+			else if( value == 0 )
+			{
+				int pos = m_data->m_players->size() + 1;
+				for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+				{
+					if( (*it).IsPlayerDeleted() )
+						pos--;
+				}
+				changedRank = pos;
+//				player->SetRange( changedRank );
+//				player->SetOriginalRange( changedRank );
+			}
+			player->SetRange( changedRank );
+			player->SetOriginalRange( changedRank );
+			int currentRank = m_data->m_players->size() + 1/*, changedRank = dlg.GetChangedRank()*/;
+/*			if( currentRank > changedRank )
+			{
+				for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+				{
+					if( (*it).IsPlayerDeleted() )
+					{
+						currentRank--;
+						continue;
+					}
+					int range = (*it).GetRange();
+					if( range >= changedRank && range < currentRank )
+						(*it).SetRange( range + 1 );
+				}
+			}*/
+			found = false;
+			if( value > 0 )
+			{
+				for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
+				{
+					if( (*it).GetName() == playerDropped )
+					{
+						found = true;
+						(*it).SetValue( 0 );
+						(*it).SetCurrentValue( 0.0 );
+						m_panel1->SetPlayerToZero( playerDropped );
+					}
+				}
+				int onedollarplayers = 0;
+				for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend(); it++ )
+				{
+					if( (*it).GetCurrentValue() == 1 )
+						onedollarplayers++;
+				}
+				double diff = - ( (double) ( value - 1 ) / ( m_availablePlayers - m_draftResult.size() - onedollarplayers ) );
+				wxBeginBusyCursor();
+				m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
+				wxEndBusyCursor();
+			}
+			else
+			{
+				double diff = 0;
+				m_zeroRanked++;
+				wxBeginBusyCursor();
+				m_panel1->RecalculatePlayersValue( diff, isEdit, player, playerDropped, (double) value );
+				wxEndBusyCursor();
+			}
+			m_draftPlayer->AddPlayer( *player );
 			delete player;
 		}
 		else
@@ -598,23 +680,35 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				if( player->GetAmountPaid() == dlg.GetChangedAmountPaid() )
 					return;
 			}*/
-			double diff;
+			double diff = 0;
 			double value = 0.0;
 			long val = 0;
 			wxString name;
+			int id;
 			if( !isDrafted )
 			{
 				double currentValue = player->GetValue(), changedValue = dlg.GetChangedCurrentValue();
 				int currentRank = player->GetRange(), changedRank = dlg.GetChangedRank();
+				if( currentValue > 0 && changedValue == 0 && m_zeroRanked == 0 )
+				{
+					wxMessageBox( "Cannot edit player. This edit would violate the minimum number of players with value. Add a new player", "Error", wxID_OK | wxICON_EXCLAMATION );
+					return;
+				}
+//				std::vector<SortObject> oldSorter = m_panel1->GetSorter().m_type;
+//				m_panel1->GetSorter().m_type.clear();
+				PlayerSorter sorter;
+				sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+				sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
+				std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 				if( currentRank < changedRank )
 				{
 					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 					{
 						int range = (*it).GetRange();
-						if( range > currentRank && range <= changedRank )
-							(*it).SetRange( range - 1 );
-						if( range == currentRank )
+						if( range == currentRank && (*it).GetName() == player->GetName() && (*it).GetAge() == player->GetAge() && (*it).GetTeam() == player->GetTeam() )
 							(*it).SetRange( changedRank );
+						if( range > currentRank && range <= changedRank && (*it).GetName() != player->GetName() )
+							(*it).SetRange( range - 1 );
 					}
 				}
 				if( currentRank > changedRank )
@@ -630,22 +724,16 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				}
 				if( changedValue == 0 && currentValue == 0 )
 					diff = 0;
-				else if( ( changedValue == 0 || currentValue == 0 ) && m_editPlayerTipDisplayed )
-				{
-					CMyTipDialog dlg( this/*, *provider*/, true );
-					dlg.ShowModal();
-					m_editPlayerTipDisplayed = dlg.ShowTipDialog();
-				}
 				if( changedValue > 0 && currentValue > 0 )
 				{
 					if( changedValue > currentValue )
 					{
-						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, POSITIVE_DIFF );
+//						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, POSITIVE_DIFF );
 						diff = -( changedValue - currentValue );
 					}
 					else
 					{
-						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, NEGATIVE_DIFF );
+//						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, NEGATIVE_DIFF );
 						diff = currentValue - changedValue;
 					}
 /*					value = changedValue - currentValue;
@@ -654,34 +742,64 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				}
 				if( currentValue == 0 && changedValue > 0 )
 				{
-					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERFROM0 );
+/*					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERFROM0 );
 					dlg1.Centre();
 					int res = dlg1.ShowModal();
 					if( res == wxID_CANCEL )
 						return;
 					if( res == wxID_OK )
+					{*/
+					bool found = false;
+					double droppedValue;
+					for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it < m_data->m_players->rend()&& !found; it++ )
 					{
-						name = dlg1.GetDroppedPlayerName();
-						DoEditPlayerFromZero( name, 0, changedValue, player, NEGATIVE_DIFF );
-						diff = currentValue - changedValue;
+						if( (*it).GetValue() > 0 && !(*it).IsPlayerDrafted() && !(*it).IsPlayerDeleted() )
+						{
+							name = (*it).GetName();
+							id = (*it).GetPlayerId();
+							droppedValue = (*it).GetValue();
+							(*it).SetRange( (*it).GetRange() + 1 );
+							(*it).SetValue( 0.0 );
+							(*it).SetCurrentValue( 0.0 );
+							found = true;
+						}
 					}
+						DoEditPlayerFromZero( id, 0, changedValue, player, NEGATIVE_DIFF, droppedValue );
+						diff = currentValue - changedValue;
+//					}
 				}
 				if( currentValue > 0 && changedValue == 0 )
 				{
-					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERTO0 );
+/*					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERTO0 );
 					dlg1.Centre();
 					int res = dlg1.ShowModal();
 					if( res == wxID_CANCEL )
 						return;
-					int playerDroppedValue = dlg1.GetDroppedPlayerValue();
-					if( playerDroppedValue > currentValue )
+					int playerDroppedValue = dlg1.GetDroppedPlayerValue();*/
+					int playerDroppedValue = 1;
+					int droppedPlayerName;
+					bool found = false;
+					for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
 					{
-						DoEditPlayerFromZero( dlg1.GetDroppedPlayerName(), playerDroppedValue, ( playerDroppedValue - currentValue ), player, NEGATIVE_DIFF );
+						if( (*it).GetValue() == 0.0 && !(*it).IsPlayerDrafted() && !(*it).IsPlayerDeleted() )
+						{
+							found = true;
+							(*it).SetValue( 1.0 );
+							(*it).SetCurrentValue( 1.0 * m_inflationRatio );
+							player->SetRange( (*it).GetRange() );
+							(*it).SetRange( (*it).GetRange() - 1 );
+							droppedPlayerName = (*it).GetPlayerId();
+						}
+					}
+					DoEditPlayerFromZero( droppedPlayerName, playerDroppedValue, ( playerDroppedValue - currentValue ), player, NEGATIVE_DIFF, 0.0 );
+/*					if( playerDroppedValue > currentValue )
+					{
+						DoEditPlayerFromZero( droppedPlayerName, playerDroppedValue, ( playerDroppedValue - currentValue ), player, NEGATIVE_DIFF, 0.0 );
 						diff = -( playerDroppedValue - currentValue );
 					}
 					if( playerDroppedValue < currentValue )
 					{
-						DoEditPlayerFromZero( dlg1.GetDroppedPlayerName(), playerDroppedValue, ( currentValue - playerDroppedValue ), player, POSITIVE_DIFF );
+//						DoEditPlayerFromZero( droppedPlayerName, playerDroppedValue, ( currentValue - playerDroppedValue ), player, POSITIVE_DIFF );
 						diff = ( playerDroppedValue - currentValue );
 					}
 					if( playerDroppedValue == currentValue )
@@ -699,8 +817,10 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 								(*it).SetCurrentValue( (double) 0 );
 							}
 						}
-					}
+					}*/
 				}
+//				sorter.m_type = oldSorter;
+//				std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 			}
 			else
 			{
@@ -718,7 +838,8 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 					sum += (*it).GetValue();
 				}
 //				double inflation = m_budget / ( m_budget - sum );
-				double inflation = ( (double) ( m_budget - player->GetAmountPaid() ) / (double) ( m_budget - sum ) );
+				m_inflationRatio = ( (double) ( m_budget - player->GetAmountPaid() ) / (double) ( m_budget - sum ) );
+				m_inflation->SetLabel( wxString::Format( "%.2f", m_inflationRatio) );
 				m_budget -= player->GetAmountPaid();
 				diff = (double) val / ( m_availablePlayers - m_draftResult.size() );
 				m_budget -= val;
@@ -737,14 +858,54 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				m_draftPlayer->UpdatePlayer( *player );
 		}
 		m_dirty = dlg.PlayerAddedModified();
+		if( !isEdit )
+			wxMessageBox( "Player added successfully!" );
+		if( isEdit)
+			wxMessageBox( "Player edited successfully!" );
 	}
 }
 
-int CFrame::LoadLeagueData(CLeagueSettings *league, const CDb &db, CLeagueData &data, const wxString &name, const int leagueID, int &numPlayers, std::vector<CPlayer> &draftResult)
+void CFrame::OnDeletePlayer(wxCommandEvent &WXUNUSED(event))
+{
+	int res = wxMessageBox( "Are you sure you want to delete " + contextMenuPlayer->GetName() + "?", "Warning", wxYES_NO | wxNO_DEFAULT | wxICON_EXCLAMATION );
+	if( res == wxYES )
+	{
+		m_dirty = true;
+		if( contextMenuPlayer->GetValue() > 0 )
+			m_availablePlayers--;
+		else
+			m_zeroRanked--;
+		contextMenuPlayer->DeletePlayer( true );
+		int deletedRank = contextMenuPlayer->GetRange();
+		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+		{
+			if( (*it).GetRange() > deletedRank )
+				(*it).SetRange( (*it).GetRange() - 1 );
+		}
+		for( std::vector<CPlayer>::iterator it1 = m_panel1->GetCompleter().GetPlayers().begin(); it1 < m_panel1->GetCompleter().GetPlayers().end(); it1++ )
+		{
+			if( (*it1).GetRange() == deletedRank )
+				(*it1).DeletePlayer( true );
+			if( (*it1).GetRange() > deletedRank )
+				(*it1).SetRange( (*it1).GetRange() -1 );
+		}
+		for( std::vector<CPlayer>::iterator it2 = m_draftPlayer->GetCompleter().GetPlayers().begin(); it2 < m_draftPlayer->GetCompleter().GetPlayers().end(); it2++ )
+		{
+			if( (*it2).GetRange() == deletedRank )
+				(*it2).DeletePlayer( true );
+			if( (*it2).GetRange() > deletedRank )
+				(*it2).SetRange( (*it2).GetRange() -1 );
+		}
+		m_panel1->DeletePlayer( *contextMenuPlayer );
+		wxMessageBox( "Player Deleted" );
+	}
+}
+
+int CFrame::LoadLeagueData(CLeagueSettings *league, const CDb &db, CLeagueData &data, const wxString &name, const wxLongLong_t leagueID, int &numPlayers, std::vector<CPlayer> &draftResult, int &zeroRanked)
 {
 	wxBusyCursor cursor;
 	int result = SQLITE_OK;
-	int leagueId;
+	wxLongLong_t leagueId;
 	if( !league )
 	{
 		league = new CLeagueSettings( name );
@@ -758,7 +919,7 @@ int CFrame::LoadLeagueData(CLeagueSettings *league, const CDb &db, CLeagueData &
 	}
 	if( result != SQLITE_OK )
 		return result;
-	const_cast<CDb &>( db ).GetPlayersForLeague( data, *league, leagueId, numPlayers, draftResult );
+	const_cast<CDb &>( db ).GetPlayersForLeague( data, leagueId, numPlayers, draftResult, zeroRanked );
 	m_leagueId = leagueId;
 	return SQLITE_OK;
 }
@@ -834,10 +995,12 @@ void CFrame::OnDraftPerformed(wxCommandEvent &WXUNUSED(event))
 			player = (*it);
 			m_draftResult.push_back( (*it) );
 			DoDraftPlayer( (*it), owner, name );
+			found = true;
 		}
 	}
 	m_draftPlayer->DraftCompleted();
 	m_dirty = true;
+	wxMessageBox( "Player drafted successfully!" );
 }
 
 void CFrame::OnHideShowteamRoster(wxCommandEvent &WXUNUSED(event))
@@ -1153,9 +1316,16 @@ void CFrame::OnContextMenu(wxGridEvent &event)
 		grid->SelectRow( event.GetRow() );
 		menu.Append( wxMENU_EDIT_PLAYER, "Edit Player" );
 		if( !grid->IsKindOf( CLASSINFO( CMyGrid ) ) && !panel->IsKindOf( CLASSINFO( CTeamsRoster ) ) && !contextMenuPlayer->IsPlayerDrafted() )
+		{
 			menu.Append( wxMENU_DRAFT_PLAYER, "Draft Player" );
+			menu.Append( wxMENU_DELETE_PLAYER, "Delete Player" );
+		}
 		else
+		{
 			menu.Append( wxMENU_UNASSIGN_PLAYER, "Un-Assign" );
+			menu.Append( wxMENU_DELETE_PLAYER, "Delete Player" );
+			menu.Enable( wxMENU_DELETE_PLAYER, false );
+		}
 		PopupMenu( &menu );
 	}
 }
@@ -1318,9 +1488,9 @@ void CFrame::DoUnAssignPlayer(bool doErase)
 				(*it).SetDraftOrder( tempOrder - 1 );
 		}
 	}
-	double inflation = (double) ( m_budget ) / (double) ( m_valueLeft );
-	m_inflation->SetLabel( wxString::Format( "%.2f%%", ( inflation - 1 ) * 100 ) );
-	m_panel1->UnAssignPlayer( player, inflation );
+	m_inflationRatio = (double) ( m_budget ) / (double) ( m_valueLeft );
+	m_inflation->SetLabel( wxString::Format( "%.2f%%", ( m_inflationRatio - 1 ) * 100 ) );
+	m_panel1->UnAssignPlayer( player, m_inflationRatio );
 	bool found = false;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
 	{
@@ -1346,11 +1516,19 @@ void CFrame::OnPrepareDraft(wxCommandEvent &WXUNUSED(event))
 
 void CFrame::OnEditColumns(wxCommandEvent &WXUNUSED(event))
 {
+	std::vector<wxString> displayedHitters, displayerPitchers;
 	CEditColumn dlg( this, *m_data->m_settings, m_columnsDisplayedHitters, m_columnsDisplayedPitchers, m_columnsDisplayed );
 	dlg.Centre();
 	if( dlg.ShowModal() == wxID_OK )
 	{
 		m_panel1->ColumnsChanged( m_columnsDisplayedHitters, m_columnsDisplayedPitchers, m_columnsDisplayed );
+		for( std::map<wxString, bool>::iterator it = m_columnsDisplayedHitters.begin(); it != m_columnsDisplayedHitters.end(); it++ )
+			if( (*it).second )
+				displayedHitters.push_back( (*it).first );
+		for( std::map<wxString, bool>::iterator it = m_columnsDisplayedPitchers.begin(); it != m_columnsDisplayedPitchers.end(); it++ )
+			if( (*it).second )
+				displayerPitchers.push_back( (*it).first );
+		m_panel3->ChangeGrids( displayedHitters, displayerPitchers );
 	}
 }
 
@@ -1446,14 +1624,14 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 	double sum = 0;
 	for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 		sum += (*it).GetValue();
-	double inflation = ( (double) ( m_budget - player.GetAmountPaid() ) / (double) ( m_budget - sum ) );
+	m_inflationRatio = ( (double) ( m_budget - player.GetAmountPaid() ) / (double) ( m_budget - sum ) );
 	m_budget -= player.GetAmountPaid();
 	m_valueLeft -= player.GetValue();
-	if( inflation == 0.0 )
-		inflation = 1;
-	m_inflation->SetLabel( wxString::Format( "%.2f%%", ( inflation - 1 ) * 100 ) );
+	if( m_inflationRatio == 0.0 )
+		m_inflationRatio = 1.0;
+	m_inflation->SetLabel( wxString::Format( "%.2f%%", ( m_inflationRatio - 1 ) * 100 ) );
 	m_availablePlayers--;
-	m_panel1->PerformDraft( player, inflation, name );
+	m_panel1->PerformDraft( player, m_inflationRatio, name );
 }
 
 void CFrame::DoPerformResetLeague(const int &league)
@@ -1516,12 +1694,11 @@ void CFrame::DoPerformResetLeague(const int &league)
 	m_data->m_players->erase( std::remove_if( m_data->m_players->begin(), m_data->m_players->end(), Remover() ), m_data->m_players->end() );
 	m_panel1->GetCompleter().SetPlayers( *m_data->m_players );
 	m_draftPlayer->GetCompleter().SetPlayers( *m_data->m_players );
+	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+		(*it).SetRange( (*it).GetOriginalRange() );
 	PlayerSorter sorter;
-	sorter.m_sortType = SORT_BY_VALUE;
-	sorter.m_forward = true;
+	sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 	std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
-	for( unsigned int i = 0; i < m_data->m_players->size(); i++ )
-		m_data->m_players->at( i ).SetRange( i + 1 );
 	m_panel1->SetCurrentPlayerRow( 0 );
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 		m_panel1->DisplayPlayer( (*it), false );
@@ -1534,31 +1711,53 @@ void CFrame::DoPerformResetLeague(const int &league)
 	m_average->SetLabel( wxString::Format( "%.2f", (double) salaryLeft / (double) playersLeft ) );
 	m_maxBid->SetLabel( wxString::Format( "$%d", salaryLeft - ( playersLeft - 1 ) ) );
 	m_profit->SetLabel( "$0" );
-	m_inflation->SetLabel( "0%" );
+	m_inflationRatio = 1.0;
+	m_inflation->SetLabel( "1.0%" );
 	m_draftResult.clear();
 	wxEndBusyCursor();
 }
 
-void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, double changedValue, CPlayer *player, int style)
+void CFrame::DoEditPlayerFromZero(const int name, int droppedValue, double changedValue, CPlayer *player, int style, const double &droppedPlayerValue)
 {
 	double value;
-	if( droppedValue == 0 && name != wxEmptyString )
-		value = changedValue - 1;
-	else if( name == wxEmptyString )
+	if( droppedValue == 0 && name != -1 )
+		value = changedValue - droppedPlayerValue;
+	else if( name == -1 )
 		value = changedValue - player->GetValue();
 	else
 		value = changedValue;
-	double diff = (double) value / (double) ( m_availablePlayers - m_draftResult.size() - 1 );
+	double diff = (double) value / (double) ( m_availablePlayers - 2 );
 //	if( !droppedValue && name != wxEmptyString )
 //		value++;
 	if( style == NEGATIVE_DIFF )
 		diff = -diff;
 	double lessMinValue = 0.0;
 	int lessMinValueCount = 0;
+	int range = 0;
+	int droppedPlayerRange;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 	{
-		if( name != wxEmptyString && (*it).GetName() == name )
+		if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
+			continue;
+		if( (*it).GetPlayerId() == name )
+			droppedPlayerRange = (*it).GetRange();
+/*		if( name != -1 && (*it).GetPlayerId() == name )
 		{
+			if( style == NEGATIVE_DIFF )
+			{
+				bool found = false;
+				for( std::vector<CPlayer>::iterator my_it = it + 1; my_it < m_data->m_players->end() && !found; my_it++ )
+				{
+					if( (*it).IsPlayerDeleted() )
+						continue;
+					range = (*my_it).GetRange();
+					if( range < player->GetRange() )
+						(*my_it).SetRange( range + 1 );
+					if( range == player->GetRange() )
+						found = true;
+				}
+				(*it).SetRange( (*it).GetRange() + 1 );
+			}
 			(*it).SetValue( droppedValue );
 			(*it).SetCurrentValue( (double) droppedValue );
 		}
@@ -1566,6 +1765,18 @@ void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, double 
 		{
 			(*it).SetValue( droppedValue == 0 ? changedValue : 0 );
 			(*it).SetCurrentValue( droppedValue == 0 ? changedValue : 0 );
+			if( style == NEGATIVE_DIFF )
+			{
+				bool found = false;
+				for( std::vector<CPlayer>::reverse_iterator it1 = m_data->m_players->rbegin(); it1 != m_data->m_players->rend() && !found; it1++ )
+				{
+					if( (*it1).GetValue() >= player->GetValue() )
+					{
+						found = true;
+						(*it).SetRange( (*it1).GetRange() + 1 );
+					}
+				}
+			}
 		}
 		else if( (*it).GetValue() > 0 )
 		{
@@ -1577,41 +1788,118 @@ void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, double 
 		{
 			lessMinValue += 1 - (*it).GetCurrentValue();
 			lessMinValueCount++;
+		}*/
+		if( (*it).GetValue() > 0 && ( (*it).GetPlayerId() != name && (*it).GetPlayerId() != player->GetPlayerId() ) )
+		{
+			(*it).SetValue( (*it).GetValue() + diff );
+			(*it).SetCurrentValue( (*it).GetValue() * m_inflationRatio );
+		}
+		else if( (*it).GetName() == player->GetName() )
+		{
+			(*it).SetValue( droppedValue == 0 ? changedValue : 0 );
+			(*it).SetCurrentValue( (*it).GetValue() * m_inflationRatio );
+		}
+		double currValue = (*it).GetValue();
+		if( currValue < 1 && currValue != 0 )
+		{
+			lessMinValue += 1.0 - currValue;
+			lessMinValueCount++;
 		}
 	}
-	double newDiff = lessMinValue / ( m_availablePlayers - m_draftResult.size() - 2 - lessMinValueCount );
+	double newDiff = lessMinValue / ( m_availablePlayers - 2 - lessMinValueCount );
 	if( lessMinValueCount > 0 )
 	{
+		lessMinValue = 0.0;
+		lessMinValueCount = 0;
 		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 		{
-			double currValue = (*it).GetCurrentValue();
+			if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
+				continue;
+			double currValue = (*it).GetValue();
 			if( currValue != 0 )
 			{
 				if( currValue < 1 )
 				{
 					(*it).SetValue( 1 );
-					(*it).SetCurrentValue( 1 );
+					(*it).SetCurrentValue( 1 * m_inflationRatio );
 				}
 				else
 				{
-					wxString playerName = (*it).GetName();
-					if( playerName != name && playerName != player->GetName() )
+					int playerId = (*it).GetPlayerId();
+					if( playerId != name && playerId != player->GetPlayerId() )
 					{
-						(*it).SetCurrentValue( (*it).GetCurrentValue() - newDiff );
-						(*it).SetValue( (*it).GetCurrentValue() );
+						(*it).SetValue( (*it).GetValue() - newDiff );
+						(*it).SetCurrentValue( (*it).GetValue() * m_inflationRatio );
+					}
+				}
+			}
+			currValue = (*it).GetCurrentValue();
+			if( currValue < 1 && currValue != 0 )
+			{
+				lessMinValue += 1.0 - currValue;
+				lessMinValueCount++;
+			}
+			newDiff = lessMinValue / ( m_availablePlayers - 2 - lessMinValueCount );
+		}
+		if( lessMinValueCount > 0 )
+		{
+			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+			{
+				if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
+					continue;
+				double currValue = (*it).GetCurrentValue();
+				if( currValue != 0 )
+				{
+					if( currValue < 1 )
+					{
+						(*it).SetCurrentValue( 1.0 );
+					}
+					else
+					{
+						(*it).SetCurrentValue( currValue - newDiff );
 					}
 				}
 			}
 		}
 	}
+	std::vector<CPlayer>::reverse_iterator changedPlayer;
+	bool rankChanged = false;
+	for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend(); it++ )
+	{
+		if( (*it).GetPlayerId() == player->GetPlayerId() )
+			changedPlayer = it;
+		if( style == NEGATIVE_DIFF )
+		{
+			if( (*it).GetCurrentValue() >= changedValue )
+				if( it == changedPlayer )
+					continue;
+				else if( !rankChanged )
+				{
+					(*changedPlayer).SetRange( (*it).GetRange() + 1 );
+					rankChanged = true;
+					break;
+				}
+			if( (*it).GetCurrentValue() < changedValue && (*it).GetRange() < droppedPlayerRange )
+				(*it).SetRange( (*it).GetRange() + 1 );
+		}
+	}
+/*	PlayerSorter sorter;
+	sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+	sorter.m_type.push_back( SortObject( SORT_BY_NAME, true ) );
+	std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );*/
+/*	int i = 0;
+	for( std::vector<CPlayer>::iterator it  = m_data->m_players->begin(); it != m_data->m_players->end(); it++ )
+	{
+		(*it).SetRange( ++i );
+	}*/
 	for( std::vector<CPlayer>::iterator it = m_draftPlayer->GetCompleter().GetPlayers().begin(); it < m_draftPlayer->GetCompleter().GetPlayers().end(); it++ )
 	{
-		if( (*it).GetName() == name )
+		if( (*it).GetPlayerId() == name )
 		{
 			(*it).SetValue( 0 );
 			(*it).SetCurrentValue( 0.0 );
 		}
-		else if( (*it).GetName() == player->GetName() )
+		else if( (*it).GetPlayerId() == player->GetPlayerId() )
 		{
 			(*it).SetValue( changedValue );
 			(*it).SetCurrentValue( changedValue );
@@ -1642,4 +1930,9 @@ void CFrame::DoEditPlayerFromZero(const wxString name, int droppedValue, double 
 			}
 		}
 	}
+}
+
+int CFrame::GetAvailablePlayers()
+{
+	return m_availablePlayers;
 }

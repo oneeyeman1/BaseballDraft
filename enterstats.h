@@ -26,7 +26,7 @@ public:
 	std::map<wxString,NewPlayerStats> &GetStatistics();
 	bool IsDirty();
 private:
-	int m_main, m_extra;
+	int m_main, m_extra, m_rows;
 	wxPanel *m_panel;
 	wxFlexGridSizer *m_paneSizer;
 	wxButton *m_enter, *m_cancel;
@@ -35,5 +35,6 @@ private:
 	wxTextCtrl **m_scores, **m_extraScores;
 	std::map<wxString,NewPlayerStats> m_stats;
 	bool m_dirty;
+	int m_count;
 };
 

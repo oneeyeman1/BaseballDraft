@@ -70,7 +70,7 @@ CNewLeaguePage::CNewLeaguePage(wxWizard *parent, const CDb &db, int mode, const 
 	m_mode = mode;
 	m_db = const_cast<CDb *>( &db );
 	m_selectedPage = 0;
-	int leagueId;
+	wxLongLong_t leagueId;
 	if( m_mode == 1 )
 	{
 		m_settings = NULL;
@@ -308,12 +308,12 @@ CLeagueSettings &CCreateLeague::GetLeague()
 	return dynamic_cast<CNewLeaguePage *>( GetFirstPage() )->GetNewLeagueSettings();
 }
 
-int CCreateLeague::GetLeagueId()
+wxLongLong_t CCreateLeague::GetLeagueId()
 {
 	return dynamic_cast<CNewLeaguePage *>( GetFirstPage() )->GetLeagueId();
 }
 
-int CNewLeaguePage::GetLeagueId()
+wxLongLong_t CNewLeaguePage::GetLeagueId()
 {
 	return m_leagueId;
 }

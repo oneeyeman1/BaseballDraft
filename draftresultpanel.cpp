@@ -18,8 +18,9 @@
 CDraftResultPanel::CDraftResultPanel(wxWindow *parent, const CLeagueSettings &settings, std::vector<CPlayer> &draftResult) : wxPanel( parent )
 {
 	PlayerSorter sorter;
-	sorter.m_forward = true;
-	sorter.m_sortType = SORT_BY_DRAFTPOSITION;
+	sorter.m_type.push_back( SortObject( SORT_BY_DRAFTPOSITION, true ) );
+//	sorter.m_forward = true;
+//	sorter.m_type.push_back( SORT_BY_DRAFTPOSITION );
 	std::sort( draftResult.begin(), draftResult.end(), sorter );
 	m_label1 = new wxStaticText( this, wxID_ANY, "Search" );
 	m_label2 = new wxStaticText( this, wxID_ANY, "Team" );
@@ -44,7 +45,7 @@ CDraftResultPanel::CDraftResultPanel(wxWindow *parent, const CLeagueSettings &se
 		m_results->SetCellValue( row, 1, (*it).GetName() );
 		m_results->SetCellValue( row, 2, (*it).GetAbbeviatedTeamName() );
 		m_results->SetCellValue( row, 3, wxString::Format( "%d", (*it).GetAmountPaid() ) );
-		m_results->SetCellValue( row, 4, wxString::Format( "%d", (*it).GetValue() - (*it).GetAmountPaid() ) );
+		m_results->SetCellValue( row, 4, wxString::Format( "%d", (int) ( (*it).GetValue() - (*it).GetAmountPaid() ) ) );
 	}
 	m_results->EndBatch();
 	wxBoxSizer *mainSizer = new wxBoxSizer( wxHORIZONTAL );

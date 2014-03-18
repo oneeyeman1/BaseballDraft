@@ -16,9 +16,12 @@
 #endif
 
 #include <vector>
+#include <set>
 #include <string.h>
 #include <map>
 #include "sqlite3.h"
+#include "wx/filename.h"
+#include "wx/stdpaths.h"
 #include "wx/wizard.h"
 #include "wx/tipdlg.h"
 #include "wx/textcompleter.h"
@@ -62,6 +65,17 @@ bool MyApp::OnInit()
 		result = false;
 	else
 	{
+/*		wxString dbDir = wxStandardPaths::Get().GetUserDataDir();
+		wxString appDir = wxStandardPaths::Get().GetExecutablePath();
+		wxFileName instName( appDir, "draft.db" );
+		wxFileName dbName( dbDir, "draft.db" );
+		if( !dbName.Exists() && instName.Exists() )
+			wxCopyFile( wxStandardPaths::Get().GetExecutablePath(), dbName.GetFullPath() );
+		else if( !instName.Exists() )
+		{
+			wxMessageBox( "There is a problem with the program installation. Please re-install and try again," );
+			return false;
+		}*/
 		wxImage::AddHandler( new wxPNGHandler );
 		CStartDialog dlg( "Select Or Create League" );
 		if( !dlg.IsDialogGood() )
@@ -74,7 +88,6 @@ bool MyApp::OnInit()
 			m_leagueId = dlg.GetLeagueId();
 			m_db = dlg.GetDatabase();
 			res = dlg.GetReturnCode();
-			dlg.Destroy();
 			if( res == wxID_CANCEL )
 			{
 				delete m_db;

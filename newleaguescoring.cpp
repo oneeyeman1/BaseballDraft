@@ -30,9 +30,9 @@ CNewLeagueScoring::CNewLeagueScoring(wxWindow *parent, CLeagueSettings *settings
 		wxT( "OBP" ),
 		wxT( "SLG" ),
 		wxT( "OPS" ),
-		wxT( "bb" ),
-		wxT( "h" ),
-		wxT( "Ks" ),
+		wxT( "BB" ),
+		wxT( "H" ),
+		wxT( "K" ),
 		wxT( "1B" ),
 		wxT( "2B" ),
 		wxT( "3B" ),
@@ -78,7 +78,7 @@ CNewLeagueScoring::CNewLeagueScoring(wxWindow *parent, CLeagueSettings *settings
 		wxT( "Holds" ),
 		wxT( "G" ),
 		wxT( "R" ),
-		wxT( "hr" )
+		wxT( "HR" )
 	};
 	wxSizer *mainSizer = new wxBoxSizer( wxVERTICAL );
 	wxSizer *secondSizer = new wxBoxSizer( wxHORIZONTAL );
@@ -158,7 +158,7 @@ CNewLeagueScoring::CNewLeagueScoring(wxWindow *parent, CLeagueSettings *settings
 	secondSizer->Add( 5, 5, 0, wxEXPAND, 0 );
 	mainSizer->Add( secondSizer, 0, wxEXPAND, 0 );
 	mainSizer->Add( 5, 5, 0, wxEXPAND, 0 );
-	if( settings )
+	if( (!displayedHitters && !displayedPitchers ) && settings )
 	{
 		std::vector<wxString> hits = settings->GetHitScoring();
 		std::vector<wxString> pitches = settings->GetPitchScoring();

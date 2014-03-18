@@ -84,6 +84,11 @@ std::vector<std::string> &CLeagueSettings::GetOwners() const
 	return const_cast<std::vector<std::string> &>( m_owners );
 }
 
+std::map<wxString,wxString> &CLeagueSettings::GetTeamsName() const
+{
+	 return const_cast<std::map<wxString,wxString> &>( m_teams );
+}
+
 std::vector<int> &CLeagueSettings::GetAmericanLeague() const
 {
 	return const_cast<std::vector<int> &>( m_americanleague );

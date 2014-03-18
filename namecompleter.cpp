@@ -34,8 +34,26 @@ void CNameCompleter::GetCompletions(const wxString& prefix, wxArrayString& res)
 	if( !wxIsalpha( prefix[0] ) )
 		return;
 	wxString temp = prefix.Capitalize();
+	int pos1 = temp.Find( ' ' );
+	int pos2 = temp.Find( '.' );
+	if( pos1 != wxNOT_FOUND )
+	{
+		wxString temp1 = temp.substr( 0, pos1 );
+		wxString temp2 = temp.substr( pos1 + 1 );
+		temp2 = temp2.MakeCapitalized();
+		temp = temp1 + ' ' + temp2;
+	}
+	else if( pos2 != wxNOT_FOUND )
+	{
+		wxString temp1 = temp.substr( 0, pos1 );
+		wxString temp2 = temp.substr( pos1 + 1 );
+		temp2 = temp2.MakeCapitalized();
+		temp = temp1 + ' ' + temp2;
+	}
 	for( it = m_players.begin(); it < m_players.end(); it++ )
 	{
+		if( it->IsPlayerDeleted() )
+			continue;
 		if( m_strict && it->IsPlayerDrafted() )
 			continue;
 		if( ( it->IsPlayerDrafted() && m_generalFilter == 0 ) || ( !it->IsPlayerDrafted() && m_generalFilter == 1 ) )
@@ -93,7 +111,6 @@ void CNameCompleter::SetPlayers(const std::vector<CPlayer> &players)
 {
 	m_players = players;
 	PlayerSorter sorter;
-	sorter.m_sortType = SORT_BY_NAME;
-	sorter.m_forward = true;
+	sorter.m_type.push_back( SortObject( SORT_BY_NAME, true ) );
 	std::sort( m_players.begin(), m_players.end(), sorter );
 }

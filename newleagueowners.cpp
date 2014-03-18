@@ -141,7 +141,8 @@ void CNewLeagueOwners::CreateLayout(unsigned int owners)
 			delete m_numbers[i - 1];
 			m_owners[i - 1] = NULL;
 			m_numbers[i - 1] = NULL;
-			m_ownersStr.pop_back();
+			if( m_ownersStr.size() > 0 )
+				m_ownersStr.pop_back();
 		}
 	}
 	Layout();
