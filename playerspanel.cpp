@@ -731,6 +731,9 @@ void CPlayersPanel::OnNameEnter(wxCommandEvent &WXUNUSED(event))
 				m_players->MakeCellVisible( i < 4 ? 0 : i + 3 > rows ? i : m_selection < i ? i + 3 : i - 3, 0 );
 				m_players->SelectRow( i );
 				m_selection = i;
+				CFrame *parent = (CFrame *) GetParent()->GetParent();
+				CPlayerDraft *draftPanel = parent->GetPlayerDraft();
+				draftPanel->GetPlayerNameCtrl().SetValue( name );
 			}
 		}
 	}

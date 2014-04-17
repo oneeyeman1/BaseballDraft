@@ -728,12 +728,12 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				{
 					if( changedValue > currentValue )
 					{
-//						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, POSITIVE_DIFF );
+						DoEditPlayerFromZero( -1, 0, changedValue, player, POSITIVE_DIFF, 0 );
 						diff = -( changedValue - currentValue );
 					}
 					else
 					{
-//						DoEditPlayerFromZero( wxEmptyString, 0, changedValue, player, NEGATIVE_DIFF );
+						DoEditPlayerFromZero( -1, 0, changedValue, player, NEGATIVE_DIFF, 0 );
 						diff = currentValue - changedValue;
 					}
 /*					value = changedValue - currentValue;
@@ -742,13 +742,6 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				}
 				if( currentValue == 0 && changedValue > 0 )
 				{
-/*					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERFROM0 );
-					dlg1.Centre();
-					int res = dlg1.ShowModal();
-					if( res == wxID_CANCEL )
-						return;
-					if( res == wxID_OK )
-					{*/
 					bool found = false;
 					double droppedValue;
 					for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it < m_data->m_players->rend()&& !found; it++ )
@@ -764,18 +757,11 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 							found = true;
 						}
 					}
-						DoEditPlayerFromZero( id, 0, changedValue, player, NEGATIVE_DIFF, droppedValue );
-						diff = currentValue - changedValue;
-//					}
+					DoEditPlayerFromZero( id, 0, changedValue, player, NEGATIVE_DIFF, droppedValue );
+					diff = currentValue - changedValue;
 				}
 				if( currentValue > 0 && changedValue == 0 )
 				{
-/*					CDroppedValuePlayer dlg1(  this, m_data->m_players, CHANGEPLAYERTO0 );
-					dlg1.Centre();
-					int res = dlg1.ShowModal();
-					if( res == wxID_CANCEL )
-						return;
-					int playerDroppedValue = dlg1.GetDroppedPlayerValue();*/
 					int playerDroppedValue = 1;
 					int droppedPlayerName;
 					bool found = false;
@@ -1733,8 +1719,7 @@ void CFrame::DoEditPlayerFromZero(const int name, int droppedValue, double chang
 		diff = -diff;
 	double lessMinValue = 0.0;
 	int lessMinValueCount = 0;
-	int range = 0;
-	int droppedPlayerRange;
+	int droppedPlayerRange = 0;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 	{
 		if( (*it).IsPlayerDeleted() || (*it).IsPlayerDrafted() )
@@ -1839,8 +1824,8 @@ void CFrame::DoEditPlayerFromZero(const int name, int droppedValue, double chang
 				lessMinValue += 1.0 - currValue;
 				lessMinValueCount++;
 			}
-			newDiff = lessMinValue / ( m_availablePlayers - 2 - lessMinValueCount );
 		}
+		newDiff = lessMinValue / ( m_availablePlayers - 2 - lessMinValueCount );
 		if( lessMinValueCount > 0 )
 		{
 			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
@@ -1862,25 +1847,61 @@ void CFrame::DoEditPlayerFromZero(const int name, int droppedValue, double chang
 			}
 		}
 	}
-	std::vector<CPlayer>::reverse_iterator changedPlayer;
 	bool rankChanged = false;
-	for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend(); it++ )
+	if( changedValue > 0 )
 	{
-		if( (*it).GetPlayerId() == player->GetPlayerId() )
-			changedPlayer = it;
-		if( style == NEGATIVE_DIFF )
+		std::vector<CPlayer>::reverse_iterator changedPlayer;
+		for( std::vector<CPlayer>::reverse_iterator it = m_data->m_players->rbegin(); it != m_data->m_players->rend(); it++ )
 		{
-			if( (*it).GetCurrentValue() >= changedValue )
-				if( it == changedPlayer )
-					continue;
-				else if( !rankChanged )
+			if( (*it).GetPlayerId() == player->GetPlayerId() )
+				changedPlayer = it;
+			if( style == NEGATIVE_DIFF )
+			{
+				if( (*it).GetCurrentValue() >= changedValue )
+					if( it == changedPlayer )
+						continue;
+					else if( !rankChanged )
+					{
+						(*changedPlayer).SetRange( (*it).GetRange() + 1 );
+						rankChanged = true;
+						break;
+					}
+				if( (*it).GetCurrentValue() < changedValue && (*it).GetRange() <= droppedPlayerRange )
 				{
-					(*changedPlayer).SetRange( (*it).GetRange() + 1 );
-					rankChanged = true;
-					break;
+					if( (*it).GetPlayerId() == name )
+						continue;
+					(*it).SetRange( (*it).GetRange() + 1 );
 				}
-			if( (*it).GetCurrentValue() < changedValue && (*it).GetRange() < droppedPlayerRange )
-				(*it).SetRange( (*it).GetRange() + 1 );
+			}
+		}
+		if( !rankChanged )
+			player->SetRange( 1 );
+	}
+	if( changedValue < 0 )
+	{
+		std::vector<CPlayer>::iterator changedPlayer;
+		bool found = false;
+		for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
+		{
+			if( (*it).GetPlayerId() == player->GetPlayerId() )
+			{
+				changedPlayer = it;
+				found = true;
+			}
+			else if( !found )
+				continue;
+			if( style == NEGATIVE_DIFF )
+			{
+				if( (*it).GetCurrentValue() >= changedValue )
+					if( it == changedPlayer )
+						continue;
+				if( (*it).GetCurrentValue() > 0 && (*it).GetRange() <= droppedPlayerRange )
+				{
+					if( (*it).GetPlayerId() == name )
+						continue;
+					(*it).SetRange( (*it).GetRange() - 1 );
+				}
+			}
 		}
 	}
 /*	PlayerSorter sorter;
@@ -1935,4 +1956,9 @@ void CFrame::DoEditPlayerFromZero(const int name, int droppedValue, double chang
 int CFrame::GetAvailablePlayers()
 {
 	return m_availablePlayers;
+}
+
+CPlayerDraft *CFrame::GetPlayerDraft()
+{
+	return m_draftPlayer;
 }

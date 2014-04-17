@@ -110,6 +110,11 @@ CAddNewPlayer::CAddNewPlayer(wxWindow *parent, const wxString &title, const CLea
     main_sizer->Add( m_panel, 0, wxEXPAND, 0 );
     SetSizerAndFit( main_sizer );
     Centre();
+	if( player )
+	{
+		m_value->SetSelection( -1, -1 );
+		m_add->SetDefault();
+	}
 	m_add->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &CAddNewPlayer::OnAddNewPlayer, this );
 	m_stats->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &CAddNewPlayer::OnEnterStats, this );
 	m_first->Bind( wxEVT_COMMAND_TEXT_UPDATED, &CAddNewPlayer::PlayerChanging, this );

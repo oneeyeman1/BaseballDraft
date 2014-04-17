@@ -42,6 +42,7 @@ public:
 	std::vector<CPlayer> &GetDraftResult();
 	void SetContextMenuPlayer(CPlayer &player);
 	bool IsGood();
+	CPlayerDraft *GetPlayerDraft();
 	DECLARE_EVENT_TABLE()
 private:
 	int m_budget;
