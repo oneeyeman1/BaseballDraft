@@ -266,6 +266,7 @@ void CNewLeaguePage::OnWizardNext(wxCommandEvent &event)
 		CNewLeaguePositions *panel3 = dynamic_cast<CNewLeaguePositions *>( m_book->GetPage( 3 ) );
 		CNewLeagueScoring *panel4 = dynamic_cast<CNewLeagueScoring *>( m_book->GetPage( 4 ) );
 		m_settings->SetPositions( panel3->GetPositions() );
+		m_settings->SetPlayersInLeague( panel3->GetPositionsCount() );
 		m_settings->SetBenchPlayerIncluded( panel3->IncludeBenchPlayers() );
 		std::vector<wxString> *hits = &m_settings->GetHitScoring();
 		std::vector<wxString> *pitches = &m_settings->GetPitchScoring();

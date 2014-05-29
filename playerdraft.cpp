@@ -31,7 +31,7 @@
 #include "playerdraft.h"
 #include "frame.h"
 
-CPlayerDraft::CPlayerDraft(wxWindow *parent, const CLeagueData &settings, int maxBid) : wxPanel( parent )
+CPlayerDraft::CPlayerDraft(wxWindow *parent, const CLeagueData &settings) : wxPanel( parent )
 {
 	int i, categoriesSize;
 	m_isResizing = false;
@@ -42,7 +42,7 @@ CPlayerDraft::CPlayerDraft(wxWindow *parent, const CLeagueData &settings, int ma
 	m_label2 = new wxStaticText( this, wxID_ANY, "Owner" );
 	m_owner = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_DROPDOWN | wxCB_READONLY );
 	m_label3 = new wxStaticText( this, wxID_ANY, "AmtPaid" );
-	m_amount = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, maxBid );
+	m_amount = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1000000 );
 	m_label4 = new wxStaticText( this, wxID_ANY, "Position" );
 	m_position = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_DROPDOWN | wxCB_READONLY );
 	m_draft = new wxButton( this, wxID_ANY, "Draft" );
@@ -127,11 +127,12 @@ wxTextCtrl &CPlayerDraft::GetPlayerNameCtrl()
 	return *m_player;
 }
 
-void CPlayerDraft::GetDraftedPlayer(wxString &name, wxString &position, wxString &owner)
+void CPlayerDraft::GetDraftedPlayer(wxString &name, wxString &position, wxString &owner, int &value)
 {
 	name = m_player->GetValue();
 	position = m_position->GetValue();
 	owner = m_owner->GetValue();
+	value = m_amount->GetValue();
 }
 
 wxComboBox &CPlayerDraft::GetOwnerCtrl()

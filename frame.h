@@ -46,8 +46,10 @@ public:
 	DECLARE_EVENT_TABLE()
 private:
 	int m_budget;
+	double m_budgetPaid, m_budgetValue;
 	wxLongLong_t m_leagueId;
 	std::map<wxString,int> m_positions;
+	std::map<wxString,int> m_maxBidValue, m_playersLeftInLeague, m_leagueSalary;
 	std::map<wxString, bool> m_columnsDisplayedHitters;
 	std::map<wxString, bool> m_columnsDisplayedPitchers;
 	std::map<wxString, bool> m_columnsDisplayed;

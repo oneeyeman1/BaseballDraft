@@ -2,7 +2,7 @@
 class CPlayerDraft : public wxPanel
 {
 public:
-	CPlayerDraft(wxWindow *parent, const CLeagueData &settings, int maxBid);
+	CPlayerDraft(wxWindow *parent, const CLeagueData &settings);
 	~CPlayerDraft(void);
 	void OnPlayerNameChange(wxCommandEvent &event);
 	void OnContextMenu(wxGridEvent &event);
@@ -10,7 +10,7 @@ public:
 	void OnNameSetFocus(wxFocusEvent &event);
 	void OnNameKillFocus(wxFocusEvent &event);
 	void OnColumnResized(wxGridSizeEvent &event);
-	void GetDraftedPlayer(wxString &name, wxString &position, wxString &owner);
+	void GetDraftedPlayer(wxString &name, wxString &position, wxString &owner, int &value);
 	void DraftCompleted();
 	void UpdatePlayer(const CPlayer &player);
 	void AddPlayer(CPlayer player);

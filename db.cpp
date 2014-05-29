@@ -608,11 +608,18 @@ int CDb::GetLeagueSettings(CLeagueSettings &settings, sqlite3_int64 &leagueId)
 		if( sqlite3_prepare_v2( m_handle, query, -1, &stmt, 0 ) == SQLITE_OK )
 		{
 			sqlite3_bind_int64( stmt, 1, leagueId );
+			int count = 0;
 			while( true )
 			{
 				result = sqlite3_step( stmt );
 				if( result == SQLITE_ROW )
-					settings.AddPosition( sqlite3_column_text( stmt, 0 ), sqlite3_column_int( stmt, 1 ) );
+				{
+					int num = sqlite3_column_int( stmt, 1 );
+					wxString name = sqlite3_column_text( stmt, 0 );
+					settings.AddPosition( name, num );
+					if( name != "Bench" )
+						count += num;
+				}
 				else if( result == SQLITE_DONE )
 				{
 					result = SQLITE_OK;
@@ -627,6 +634,8 @@ int CDb::GetLeagueSettings(CLeagueSettings &settings, sqlite3_int64 &leagueId)
 			sqlite3_finalize( stmt );
 			if( result != SQLITE_OK )
 				return result;
+			else
+				settings.SetPlayersInLeague( count );
 		}
 		query = "SELECT * FROM teamsforleague, teams WHERE id = ? AND teamsforleague.teamid = teams.teamid AND teams.teamnational = 0;";
 		if( sqlite3_prepare_v2( m_handle, query, -1, &stmt, 0 ) == SQLITE_OK )
@@ -1115,7 +1124,7 @@ int CDb::GetPlayersForLeague(CLeagueData &m_data, const int &leagueId, int &numP
 	char ishitter;
 	std::map<wxString,double> scoring, originalScoring;
 	std::vector<wxString> positions;
-	wxString query = "SELECT playersinleague.playerid, players.name, playersinleague.age, playersinleague.value, teams.name, teams.shortname, playersinleague.currvalue, players.notes, playersinleague.draft, players.value, playersinleague.isnew, playersinleague.current_rank, playersinleague.original_rank, playersinleague.ishitter, playersinleague.deleted FROM players, playersinleague, teams WHERE players.playerid = playersinleague.playerid AND teams.teamid = playersinleague.teamid AND playersinleague.id = ? ORDER BY playersinleague.currvalue DESC, playersinleague.current_rank ASC;";
+	wxString query = "SELECT playersinleague.playerid, players.name, playersinleague.age, playersinleague.value, teams.name, teams.shortname, playersinleague.currvalue, players.notes, playersinleague.draft, players.value, playersinleague.isnew, playersinleague.current_rank, playersinleague.original_rank, playersinleague.ishitter, playersinleague.deleted FROM players, playersinleague, teams WHERE players.playerid = playersinleague.playerid AND teams.teamid = playersinleague.teamid AND playersinleague.id = ? ORDER BY playersinleague.value DESC, playersinleague.current_rank ASC;";
 	wxString score = "SELECT playersinleague.playerid,scorehits.scorename,leaguescorehitter.value FROM playersinleague,scorehits,leaguescorehitter WHERE leaguescorehitter.scoreid = scorehits.scoreid AND playersinleague.playerid = leaguescorehitter.playerid AND playersinleague.playerid = ? AND playersinleague.id = ? UNION ALL SELECT playersinleague.playerid,scorepitch.scorename,leaguescorepitcher.value FROM playersinleague,scorepitch,leaguescorepitcher WHERE playersinleague.playerid = leaguescorepitcher.playerid AND leaguescorepitcher.scoreid = scorepitch.scoreid AND playersinleague.playerid = ? AND playersinleague.id = ?;";
 	wxString pos = "SELECT positions.positionname FROM playerpositioninleague, positions WHERE playerpositioninleague.positionid = positions.positionid AND playerpositioninleague.playerid = ? AND playerpositioninleague.id = ?;";
 	wxString draft = "SELECT ownername, draftprice, draftorder, draftposition FROM playerdraft, owners WHERE playerdraft.id = ? AND playerid = ? AND owners.ownerid = playerdraft.ownerid ORDER BY draftorder;";

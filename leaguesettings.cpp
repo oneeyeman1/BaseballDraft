@@ -27,6 +27,7 @@ CLeagueSettings::CLeagueSettings(const wxString &leagueTitle)
 	m_pitchScoringName = new std::vector<wxString>();*/
 	m_salary = 0;
 	m_benchPlayerIncluded = false;
+	m_playersInLeague = 0;
 }
 
 CLeagueSettings::CLeagueSettings(const wxString name, int owners, int draftType, int scoringType, int roundType, int salary, bool benchIncluded)
@@ -245,4 +246,14 @@ void CLeagueSettings::AddTargetHitter(const wxString &score, double value)
 void CLeagueSettings::AddTargetPitchers(const wxString &score, double value)
 {
 	m_targetPitches[score] = value;
+}
+
+int &CLeagueSettings::GetPlayersInLeague()
+{
+	return m_playersInLeague;
+}
+
+void CLeagueSettings::SetPlayersInLeague(int players)
+{
+	m_playersInLeague = players;
 }

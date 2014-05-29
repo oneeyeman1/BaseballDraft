@@ -126,13 +126,15 @@ public:
 	std::map<wxString,double> &GetTargetsForPitchers() const;
 	void AddTeamAbbreviation(const wxString &name, const wxString &abbreviatedName) { m_teams[abbreviatedName] = name; };
 	std::map<wxString,wxString> &GetTeamsName() const;
+	int &GetPlayersInLeague();
+	void SetPlayersInLeague(int players);
 private:
 	wxString m_name;
 	bool m_type, m_benchPlayerIncluded;
 	std::vector<std::string> m_owners;
 	std::map<wxString,int> m_positions;
 	std::map<wxString,double> m_targetHits, m_targetPitches;
-	int m_ownersNum, m_draftType, m_scoringType, m_roundingType/*, m_positions[14]*/, m_salary;
+	int m_ownersNum, m_draftType, m_scoringType, m_roundingType, m_salary, m_playersInLeague;
 	std::vector<int> m_americanleague, m_nationalleague;
 	std::vector<wxString> m_hitsScoringName, m_pitchScoringName;
 	std::map<wxString,wxString> m_teams;

@@ -256,7 +256,7 @@ void CPlayersPanel::set_properties()
 	m_players->SetColLabelValue( 62, "R" );
 	m_players->SetColLabelValue( 63, "HR" );
 	m_players->SetColLabelValue( 64, "Notes" );
-	m_sort.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+	m_sort.m_type.push_back( SortObject( SORT_BY_VALUE, true ) );
 	m_sort.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 	m_presorted = true;
 	int row = 0;
@@ -1387,7 +1387,7 @@ void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPla
 			double currValue = (*it).GetCurrentValue();
 			if( currValue > 0 && currValue < 1 )
 			{
-				lessThanOneDollar += currValue;
+				lessThanOneDollar += 1 - currValue;
 				countLessThanOneDollar++;
 			}
 		}
@@ -1405,7 +1405,7 @@ void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPla
 			}
 		}
 		PlayerSorter sorter;
-		sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+		sorter.m_type.push_back( SortObject( SORT_BY_VALUE, true ) );
 		sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 		std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 		int range = 1;
@@ -1445,7 +1445,7 @@ void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPla
 			changedRank = pos;
 			newPlayer.SetRange( changedRank );
 			newPlayer.SetOriginalRange( changedRank );
-			int newPlayerRank = const_cast<CPlayer *>( player )->GetRange();
+//			int newPlayerRank = const_cast<CPlayer *>( player )->GetRange();
 			m_data->m_players->push_back( newPlayer );
 			m_players->BeginBatch();
 			m_players->AppendRows();
@@ -1462,7 +1462,7 @@ void CPlayersPanel::RecalculatePlayersValue(double diff, bool isEdit, const CPla
 			int counter = 0;
 			for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end(); it++ )
 			{
-				int playerRange = (*it).GetRange();
+//				int playerRange = (*it).GetRange();
 				if( (*it).IsPlayerDeleted() )
 					continue;
 				if( !playerDropped.IsEmpty() && (*it).GetName() == playerDropped )

@@ -17,6 +17,7 @@
 
 CNewLeaguePositions::CNewLeaguePositions(wxWindow *parent, const CLeagueSettings *settings) : wxPanel( parent )
 {
+	m_positionsCount = 0;
 	m_positions = new CPropertyGrid( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxPG_SPLITTER_AUTO_CENTER | wxPG_BOLD_MODIFIED );
 	m_positions->Append( new wxIntProperty( "C", wxPG_LABEL, !settings ? 2 : settings->GetPositions()["C"] ) );
 	m_positions->SetPropertyEditor( "C", wxPGEditor_SpinCtrl );
@@ -117,12 +118,14 @@ bool CNewLeaguePositions::Validate()
 		wxPGProperty *prop = *it;
 		int value = ((wxAny) prop->GetValue()).As<int>();
 		if( value > 0 && value <= 20 )
+			m_positionsCount += value;
 			goodValue++;
 	}
 	if( !goodValue )
 	{
 		wxMessageBox( "At least one value should be in range 1-20" );
 		validated = false;
+		m_positionsCount = 0;
 	}
 	return validated;
 }
@@ -174,4 +177,9 @@ bool CNewLeaguePositions::IncludeBenchPlayers()
 void CNewLeaguePositions::SetDHValue()
 {
 	m_positions->SetPropertyValue( "DH", 0 );
+}
+
+int CNewLeaguePositions::GetPositionsCount()
+{
+	return m_positionsCount;
 }

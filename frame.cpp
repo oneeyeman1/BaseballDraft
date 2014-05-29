@@ -116,7 +116,20 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	m_columnsDisplayed["Owner"] = true;
 	m_columnsDisplayed["Age"] = false;
 	m_columnsDisplayed["Notes"] = true;
-	m_budget = m_valueLeft = (double) m_data->m_settings->GetSalary() * m_data->m_settings->GetOwnersNumber();
+	m_budget = m_valueLeft = m_budgetPaid = m_budgetValue = (double) m_data->m_settings->GetSalary() * m_data->m_settings->GetOwnersNumber();
+	int players = m_data->m_settings->GetPlayersInLeague();
+	if( m_data->m_settings->GetLeagueType() )
+	{
+		players -= m_data->m_settings->GetPositions()["DH"];
+		players -= m_data->m_settings->GetPositions()["SP"];
+		players -= m_data->m_settings->GetPositions()["RP"];
+	}
+	for( std::vector<std::string>::iterator it = m_data->m_settings->GetOwners().begin(); it < m_data->m_settings->GetOwners().end(); it++ )
+	{
+		m_maxBidValue[(*it)] = m_data->m_settings->GetSalary() - ( players - 1 );
+		m_playersLeftInLeague[(*it)] = players;
+		m_leagueSalary[(*it)] = m_data->m_settings->GetSalary();
+	}
 	m_panel = new wxPanel( this, wxID_ANY );
 	m_label1 = new wxStaticText( m_panel, wxID_ANY, "Owner" );
 	const wxString *m_teams_choices = NULL;
@@ -139,7 +152,7 @@ CFrame::CFrame(const wxString &title, CLeagueSettings *league, const CDb &db, co
 	m_average = new wxStaticText( m_panel, wxID_ANY, "0" );
 	m_label9 = new wxStaticText( m_panel, wxID_ANY, "Max Bid:" );
 	m_maxBid = new wxStaticText( m_panel, wxID_ANY, "0" );
-	m_draftPlayer = new CPlayerDraft( m_panel, *m_data, m_data->m_settings->GetSalary() - ( ( CalculateHitters() + CalculatePitchers() - m_draftResult.size() ) - 1 ) );
+	m_draftPlayer = new CPlayerDraft( m_panel, *m_data );
 	m_playersData = new wxButton( m_panel, wxID_ANY, "Players" );
 	m_rostersData = new wxButton( m_panel, wxID_ANY, "Rosters" );
 	m_teamProjectionsData = new wxButton( m_panel, wxID_ANY, "Projected Standings" );
@@ -571,7 +584,7 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 			if( value > 0 )
 			{
 				PlayerSorter sorter;
-				sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+				sorter.m_type.push_back( SortObject( SORT_BY_VALUE, true ) );
 				sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 				std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 				bool found = false;
@@ -697,7 +710,7 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 //				std::vector<SortObject> oldSorter = m_panel1->GetSorter().m_type;
 //				m_panel1->GetSorter().m_type.clear();
 				PlayerSorter sorter;
-				sorter.m_type.push_back( SortObject( SORT_BY_CURRVALUE, true ) );
+				sorter.m_type.push_back( SortObject( SORT_BY_VALUE, true ) );
 				sorter.m_type.push_back( SortObject( SORT_BY_RANGE, true ) );
 				std::sort( m_data->m_players->begin(), m_data->m_players->end(), sorter );
 				if( currentRank < changedRank )
@@ -818,17 +831,19 @@ void CFrame::OnAddNewPlayer(wxCommandEvent &event)
 				int profit = wxAtoi( m_profit->GetLabel() );
 				m_profit->SetLabel( wxString::Format( "$%d", profit - val ) );
 				m_maxBid->SetLabel( wxString::Format( "%d", ( salaryLeft - val ) - ( playersLeft - 1 ) ) );
-				double sum = 0;
+/*				double sumValue = 0, sumPaid = 0;
 				for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 				{
-					sum += (*it).GetValue();
-				}
+					sumValue += (*it).GetValue();
+					sumPaid += (*it).GetAmountPaid();
+				}*/
 //				double inflation = m_budget / ( m_budget - sum );
-				m_inflationRatio = ( (double) ( m_budget - player->GetAmountPaid() ) / (double) ( m_budget - sum ) );
+				m_budgetPaid -= dlg.GetChangedAmountPaid() - player->GetAmountPaid();
+				m_inflationRatio = m_budgetPaid / m_budgetValue;
 				m_inflation->SetLabel( wxString::Format( "%.2f", m_inflationRatio) );
-				m_budget -= player->GetAmountPaid();
-				diff = (double) val / ( m_availablePlayers - m_draftResult.size() );
-				m_budget -= val;
+//				m_budget -= player->GetAmountPaid();
+/*				diff = (double) val / ( m_availablePlayers - m_draftResult.size() );
+				m_budget -= val;*/
 				player->SetAmountPaid( dlg.GetChangedAmountPaid() );
 			}
 			player->SetAge( dlg.GetChangedAge() );
@@ -930,7 +945,8 @@ void CFrame::OnDraftPerformed(wxCommandEvent &WXUNUSED(event))
 {
 	bool found = false;
 	wxString name, position, owner;
-	m_draftPlayer->GetDraftedPlayer( name, position, owner );
+	int value;
+	m_draftPlayer->GetDraftedPlayer( name, position, owner, value );
 	if( name.IsEmpty() )
 	{
 		wxMessageBox( "Please enter a player's name to draft" );
@@ -943,10 +959,16 @@ void CFrame::OnDraftPerformed(wxCommandEvent &WXUNUSED(event))
 		m_draftPlayer->GetOwnerCtrl().SetFocus();
 		return;
 	}
+	if( value > m_maxBidValue[owner] )
+	{
+		wxMessageBox( "Cannot draft player. Amount Paid exceeds Max Bid" );
+		m_draftPlayer->GetAmountPaidCtrl().SetFocus();
+		return;
+	}
 	CPlayer player;
 	wxMessageDialog dlg( NULL, "Player - " + name + "\r\nOwner - " + owner + "\r\nAmount Paid - " + wxString::Format( "%d", m_draftPlayer->GetAmountPaid() ) + "\r\nPosition - " + position, "Drafting", wxOK | wxCANCEL | wxCENTRE );
 	dlg.SetOKLabel( "Confirm" );
-	if( dlg.ShowModal() == wxCANCEL )
+	if( dlg.ShowModal() == wxID_CANCEL )
 		return;
 	for( std::vector<CPlayer>::iterator it = m_data->m_players->begin(); it < m_data->m_players->end() && !found; it++ )
 	{
@@ -1075,7 +1097,8 @@ void CFrame::OnSelectingOwner(wxCommandEvent &WXUNUSED(event))
 			for( int i = 0; i < grid->GetNumberRows() && !displayed; i++ )
 			{
 				wxString position = grid->GetCellValue( i, 0 );
-				if( (*it).GetDraftedPosition() == position )
+				wxString name = grid->GetCellValue( i, 1 );
+				if( (*it).GetDraftedPosition() == position && name.IsEmpty() )
 				{
 					DisplayDraftedPlayer( grid, &(*it), i );
 					displayed = true;
@@ -1083,20 +1106,15 @@ void CFrame::OnSelectingOwner(wxCommandEvent &WXUNUSED(event))
 			}
 			displayed = false;
 			count++;
-			salaryLeft += (*it).GetAmountPaid();
 			profit += (*it).GetValue() - (*it).GetAmountPaid();
 		}
 	}
-	salaryLeft = m_data->m_settings->GetSalary() - salaryLeft;
-	playersLeft = ( ( m_hittersDrafted->GetNumberRows() - 2 ) + ( m_pitchersDrafted->GetNumberRows() - 2 ) ) - count;
-	double average = (double) salaryLeft / (double) playersLeft;
-	int maxBid = salaryLeft - ( playersLeft - 1 );
-	m_salaryLeft->SetLabel( wxString::Format( "$%d", salaryLeft ) );
-	m_playersLeft->SetLabel( wxString::Format( "%d", playersLeft ) );
+	double average = (double) m_leagueSalary[name] / (double) m_playersLeftInLeague[name];
+	m_salaryLeft->SetLabel( wxString::Format( "$%d", m_leagueSalary[name] ) );
+	m_playersLeft->SetLabel( wxString::Format( "%d", m_playersLeftInLeague[name] ) );
 	m_average->SetLabel( wxString::Format( "%.2f", average ) );
-	m_maxBid->SetLabel( wxString::Format( "$%d", maxBid ) );
-	m_profit->SetLabel( wxString::Format( "%d", profit ) );
-	m_draftPlayer->GetAmountPaidCtrl().SetRange( 1, maxBid );
+	m_maxBid->SetLabel( wxString::Format( "$%d", m_maxBidValue[name] ) );
+	m_profit->SetLabel( wxString::Format( "%.2f", profit ) );
 	m_oldOwner = name;
 }
 
@@ -1324,6 +1342,7 @@ void CFrame::OnUnAssignPlayer(wxCommandEvent &WXUNUSED(event))
 		wxBeginBusyCursor();
 		DoUnAssignPlayer( true );
 		wxEndBusyCursor();
+		wxMessageBox( "Unassign Player Successful!", "Unassign Player", wxOK );
 	}
 	m_dirty = true;
 }
@@ -1440,24 +1459,22 @@ void CFrame::DoUnAssignPlayer(bool doErase)
 		}
 	}
 	wxString currentOwner = m_teams->GetValue();
-	if( currentOwner == contextMenuPlayer->GetOwner() )
+	wxString playerOwner = contextMenuPlayer->GetOwner();
+	m_leagueSalary[playerOwner] += contextMenuPlayer->GetAmountPaid();
+	m_playersLeftInLeague[playerOwner]++;
+	m_maxBidValue[playerOwner] += ( contextMenuPlayer->GetAmountPaid() + 1 );
+	if( currentOwner == playerOwner )
 	{
-		wxString sal = m_salaryLeft->GetLabel();
-		int salary = wxAtoi( sal.substr( 1, sal.length() ) );
-		salary += contextMenuPlayer->GetAmountPaid();
-		m_salaryLeft->SetLabel( wxString::Format( "$%d", salary ) );
+		m_salaryLeft->SetLabel( wxString::Format( "$%d", m_leagueSalary[playerOwner] ) );
 		double profit = contextMenuPlayer->GetValue() - contextMenuPlayer->GetAmountPaid();
 		double prof;
 		m_profit->GetLabel().ToDouble( &prof );
 		m_profit->SetLabel( wxString::Format( "%.2f", prof - profit ) );
-		int playersLeft = wxAtoi( m_playersLeft->GetLabel() );
-		m_playersLeft->SetLabel( wxString::Format( "%d", ++playersLeft ) );
-		m_average->SetLabel( wxString::Format( "%.2f", (double) salary / (double) playersLeft ) );
-		int maxBid = salary - ( playersLeft - 1 );
-		m_maxBid->SetLabel( wxString::Format( "$%d", maxBid ) );
-		m_draftPlayer->GetAmountPaidCtrl().SetRange( 1, maxBid );
+		m_playersLeft->SetLabel( wxString::Format( "%d", m_playersLeftInLeague[playerOwner] ) );
+		m_average->SetLabel( wxString::Format( "%.2f", (double) m_leagueSalary[playerOwner] / (double) m_playersLeftInLeague[playerOwner] ) );
+		m_maxBid->SetLabel( wxString::Format( "$%d", m_maxBidValue[playerOwner] ) );
 	}
-	m_budget += player.GetAmountPaid();
+//	m_budget += player.GetAmountPaid();
 	for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
 	{
 		if( (*it).GetName() == name && (*it).GetOwner() == contextMenuPlayer->GetOwner() )
@@ -1474,7 +1491,9 @@ void CFrame::DoUnAssignPlayer(bool doErase)
 				(*it).SetDraftOrder( tempOrder - 1 );
 		}
 	}
-	m_inflationRatio = (double) ( m_budget ) / (double) ( m_valueLeft );
+	m_budgetPaid += contextMenuPlayer->GetAmountPaid();
+	m_budgetValue += contextMenuPlayer->GetValue();
+	m_inflationRatio = m_budgetPaid / m_budgetValue;
 	m_inflation->SetLabel( wxString::Format( "%.2f%%", ( m_inflationRatio - 1 ) * 100 ) );
 	m_panel1->UnAssignPlayer( player, m_inflationRatio );
 	bool found = false;
@@ -1488,6 +1507,7 @@ void CFrame::DoUnAssignPlayer(bool doErase)
 			contextMenuPlayer->SetDraftedPosition( wxEmptyString );
 			contextMenuPlayer->DraftPlayer( false );
 			contextMenuPlayer->SetDraftOrder( 0 );
+			contextMenuPlayer->SetCurrentValue( contextMenuPlayer->GetValue() * m_inflationRatio );
 		}
 	}
 	return;
@@ -1575,6 +1595,9 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 			(*it_new).SetOwner( const_cast<CPlayer &>( player ).GetOwner() );
 			(*it_new).SetDraftedPosition( const_cast<CPlayer &>( player ).GetDraftedPosition() );
 			found = true;
+			m_leagueSalary[owner] -= player.GetAmountPaid();
+			m_playersLeftInLeague[owner]--;
+			m_maxBidValue[owner] -= ( player.GetAmountPaid() - 1 );
 			if( m_teams->GetValue() == owner )
 			{
 				DisplayDraftedPlayer( (*it_new).IsHitter() ? m_hittersDrafted : m_pitchersDrafted, &( const_cast<CPlayer &>( player ) ), -1 );
@@ -1583,16 +1606,10 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 				m_profit->GetLabel().ToDouble( &prof );
 				double temp = prof + profit;
 				m_profit->SetLabel( wxString::Format( "%.2f", temp ) );
-				int tmp = wxAtoi( m_playersLeft->GetLabel() ) - 1;
-				m_playersLeft->SetLabel( wxString::Format( "%d", tmp ) );
-				wxString salary = m_salaryLeft->GetLabel();
-				int sal = wxAtoi( salary.substr( 1, salary.length() ) );
-				sal -= player.GetAmountPaid();
-				m_salaryLeft->SetLabel( wxString::Format( "$%d", sal ) );
-				m_average->SetLabel( wxString::Format( "%.2f", (double) sal / temp ) );
-				int maxBid = ( sal ) - ( (int) temp - 1 );
-				m_maxBid->SetLabel( wxString::Format( "$%d", maxBid ) );
-				m_draftPlayer->GetAmountPaidCtrl().SetRange( 1, maxBid );
+				m_playersLeft->SetLabel( wxString::Format( "%d", m_playersLeftInLeague[owner] ) );
+				m_salaryLeft->SetLabel( wxString::Format( "$%d", m_leagueSalary[owner] ) );
+				m_average->SetLabel( wxString::Format( "%.2f", (double) m_leagueSalary[owner] / m_playersLeftInLeague[owner] ) );
+				m_maxBid->SetLabel( wxString::Format( "$%d", m_maxBidValue[owner] ) );
 			}
 			beginValue = (*it_new).GetValue();
 		}
@@ -1607,11 +1624,16 @@ void CFrame::DoDraftPlayer(const CPlayer &player, const wxString &owner, const w
 		}
 	}
 	found = true;
-	double sum = 0;
+/*	double sumValue = 0, sumPaid = 0;
 	for( std::vector<CPlayer>::iterator it = m_draftResult.begin(); it < m_draftResult.end(); it++ )
-		sum += (*it).GetValue();
-	m_inflationRatio = ( (double) ( m_budget - player.GetAmountPaid() ) / (double) ( m_budget - sum ) );
-	m_budget -= player.GetAmountPaid();
+	{
+		sumValue += (*it).GetValue();
+		sumPaid += (*it).GetAmountPaid();
+	}*/
+	m_budgetPaid -= player.GetAmountPaid();
+	m_budgetValue -= player.GetValue();
+	m_inflationRatio = m_budgetPaid / m_budgetValue;
+//	m_budget -= player.GetAmountPaid();
 	m_valueLeft -= player.GetValue();
 	if( m_inflationRatio == 0.0 )
 		m_inflationRatio = 1.0;

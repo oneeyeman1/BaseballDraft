@@ -27,9 +27,11 @@ public:
 	void SetDHValue();
 	bool IncludeBenchPlayers();
 //	virtual bool Show(bool show = true);
+	int GetPositionsCount();
 private:
 	std::map<wxString,int> m_properties;
 	CPropertyGrid *m_positions;
 	wxStaticText *m_label1;
 	wxCheckBox *m_benchPlayers;
+	int m_positionsCount;
 };
